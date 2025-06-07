@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scp app</title>
+    <title>SCP App</title>
+    <link rel="stylesheet" href="./estilos/css/estilos.css">
+    <link rel="icon" href="./estilos/icons/icon.png" type="image/png">
 </head>
 <body>
-    <h1>Scp app</h1>
-    <form action="./html/buscar.html">
-        <button type="submit">buscar</button>
-    </form>
+    <div class="fondo">
+        <img src="./estilos/./icons/Logo.png" alt="SCP Logo">
+    </div>
+    <div class="contenedor">
+        <h1>SCP Database</h1>
+        <div class="busqueda">
+            <select id="categoria">
+                <option value="items">Items (SCPs)</option>
+                <option value="tales">Tales (Relatos)</option>
+            </select>
+            <input type="text" id="Buscar" placeholder="Buscar SCP...">
+            <button onclick="BuscarSCP()">Buscar</button>
+        </div>
+        <div id="Resultados"></div>
+    </div>
+    <script src="./funcion/main.js"></script>
 </body>
 </html>
