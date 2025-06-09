@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCP App</title>
+    <title>SCP Database</title>
     <link rel="stylesheet" href="./estilos/css/estilos.css">
-    <link rel="icon" href="./estilos/icons/icon.png" type="image/png">
 </head>
 <body>
     <div class="fondo">
-        <img src="./estilos/./icons/Logo.png" alt="SCP Logo">
+        <img src="./estilos/icons/Logo.png" alt="SCP Logo">
     </div>
-    <div class="contenedor">
+    <header class="encabezado">
         <h1>SCP Database</h1>
-        <div class="busqueda">
-            <select id="categoria">
+        <form class="busqueda" id="search-form">
+            <select id="categoria" name="tipo">
                 <option value="items">Items (SCPs)</option>
                 <option value="tales">Tales (Relatos)</option>
             </select>
-            <input type="text" id="Buscar" placeholder="Buscar SCP...">
-            <button onclick="BuscarSCP()">Buscar</button>
-        </div>
-        <div id="Resultados"></div>
-    </div>
+            <input type="text" id="Buscar" placeholder="Buscar SCP o relato...">
+            <button type="submit">Buscar</button>
+        </form>
+    </header>
+    <main class="contenedor">
+        <section id="Resultados" class="resultados">
+            <!-- Los resultados se llenarán dinámicamente con JavaScript -->
+        </section>
+    </main>
     <script src="./funcion/main.js"></script>
 </body>
 </html>
