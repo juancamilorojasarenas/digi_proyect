@@ -1,12 +1,5 @@
-/**
- * SCP Database Application - Proyecto JavaScript Completo
- * Aplicación que consume API pública de SCP Foundation
- * Cumple con todos los requisitos del proyecto de aula
- */
-
-// ==================== CONFIGURACIÓN Y CONSTANTES ====================
 const CONFIG = {
-    API_BASE_URL: 'https://raw.githubusercontent.com/scp-data/scp-api/main/docs', // URL corregida
+    API_BASE_URL: 'https://raw.githubusercontent.com/scp-data/scp-api/main/docs', 
     ITEMS_PER_PAGE: 12,
     SEARCH_DEBOUNCE_DELAY: 800,
     MAX_RETRIES: 3,
@@ -14,7 +7,6 @@ const CONFIG = {
     MAX_DESCRIPTION_LENGTH: 500
 };
 
-// Lista expandida de SCPs disponibles (más de 100 SCPs)
 const AVAILABLE_SCPS = [
     '002', '003', '004', '005', '006', '008', '009', '010', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020',
     '021', '022', '023', '024', '025', '026', '027', '028', '029', '030', '031', '032', '033', '034', '035', '036', '037', '038',
@@ -37,7 +29,6 @@ const SCP_CLASSES = {
     'Neutralized': { color: '#607D8B', description: 'Ya no es anómalo' }
 };
 
-// ==================== STATE MANAGEMENT ====================
 const AppState = {
     currentPage: 1,
     totalItems: 0,
@@ -49,11 +40,6 @@ const AppState = {
     favorites: JSON.parse(localStorage.getItem('scp-favorites') || '[]')
 };
 
-// ==================== CLASES Y MÓDULOS ====================
-
-/**
- * Cliente para interactuar con la API de SCP
- */
 class SCPApiClient {
     constructor() {
         this.baseURL = CONFIG.API_BASE_URL;
@@ -205,7 +191,6 @@ class SCPApiClient {
     }
 }
 
-// ==================== GESTIÓN DEL DOM ====================
 
 class DOMManager {
     constructor() {
@@ -218,7 +203,6 @@ class DOMManager {
     }
 
     setupEventListeners() {
-        // Event listener para búsqueda con debounce
         this.buscarInput.addEventListener('input', (e) => {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => {
@@ -228,14 +212,12 @@ class DOMManager {
             }, CONFIG.SEARCH_DEBOUNCE_DELAY);
         });
 
-        // Event listener para categoría
         this.categoriaSelect.addEventListener('change', (e) => {
             AppState.currentCategory = e.target.value;
             AppState.currentPage = 1;
             this.performSearch();
         });
 
-        // Event listener para Enter en búsqueda
         this.buscarInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 clearTimeout(this.debounceTimer);
@@ -245,7 +227,6 @@ class DOMManager {
             }
         });
 
-        // Event listener para submit del formulario
         this.searchForm.addEventListener('submit', (e) => {
             e.preventDefault();
             clearTimeout(this.debounceTimer);
@@ -689,11 +670,9 @@ class DOMManager {
     }
 }
 
-// ==================== INICIALIZACIÓN ====================
 const apiClient = new SCPApiClient();
 const domManager = new DOMManager();
 
-// Cargar datos iniciales al abrir la página
 document.addEventListener('DOMContentLoaded', () => {
     domManager.performSearch();
 });
