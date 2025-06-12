@@ -3,29 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCP Database</title>
+    <title>SCP Foundation Enhanced</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./estilos/css/estilos.css">
 </head>
 <body>
     <div class="fondo">
-        <img src="./estilos/icons/Logo.png" alt="SCP Logo">
+        <img src="https://via.placeholder.com/400x400/00ff88/000000?text=SCP" alt="SCP Logo">
     </div>
-    <header class="encabezado">
-        <h1>SCP Database</h1>
-        <form class="busqueda" id="search-form">
-            <select id="categoria" name="tipo">
-                <option value="items">Items (SCPs)</option>
-                <option value="tales">Tales (Relatos)</option>
+
+    <div class="encabezado">
+        <h1>SCP Foundation</h1>
+        <div class="busqueda">
+            <select id="categoria">
+                <option value="">Todas las categorías</option>
+                <option value="safe">Safe</option>
+                <option value="euclid">Euclid</option>
+                <option value="keter">Keter</option>
+                <option value="thaumiel">Thaumiel</option>
             </select>
-            <input type="text" id="Buscar" placeholder="Buscar SCP o relato...">
-            <button type="submit">Buscar</button>
-        </form>
-    </header>
-    <main class="contenedor">
-        <section id="Resultados" class="resultados">
-            <!-- Los resultados se llenarán dinámicamente con JavaScript -->
-        </section>
-    </main>
+            <input type="text" id="busqueda" placeholder="Buscar anomalías SCP...">
+            <button onclick="buscarSCP()">🔍 Buscar</button>
+        </div>
+    </div>
+
+    <div class="contenedor">
+        <div class="resultados" id="resultados">
+            <!-- Ejemplo de tarjeta SCP -->
+            <div class="scp-grid">
+                <div class="scp-card">
+                    <div class="scp-number">SCP-173</div>
+                    <h3 class="scp-title">The Sculpture</h3>
+                    <p class="scp-description">
+                        Una escultura animada de hormigón y varilla de refuerzo pintada con pintura en aerosol Krylon. 
+                        Es extremadamente hostil y se moverá para atacar cuando no esté siendo observado directamente, 
+                        matando por dislocación del cuello o estrangulamiento.
+                    </p>
+                </div>
+                
+                <div class="scp-card">
+                    <div class="scp-number">SCP-096</div>
+                    <h3 class="scp-title">The Shy Guy</h3>
+                    <p class="scp-description">
+                        Una criatura humanoide pálida de aproximadamente 2.38 metros de altura. Entra en un estado de 
+                        considerable angustia emocional cuando alguien ve su rostro, ya sea directamente, en video, 
+                        fotografía o incluso en un dibujo artístico.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="./funcion/main.js"></script>
 </body>
 </html>
