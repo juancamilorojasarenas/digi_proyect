@@ -1,678 +1,258 @@
-const CONFIG = {
-    API_BASE_URL: 'https://raw.githubusercontent.com/scp-data/scp-api/main/docs', 
-    ITEMS_PER_PAGE: 12,
-    SEARCH_DEBOUNCE_DELAY: 800,
-    MAX_RETRIES: 3,
-    RETRY_DELAY: 1000,
-    MAX_DESCRIPTION_LENGTH: 500
-};
-
-const AVAILABLE_SCPS = [
-    '002', '003', '004', '005', '006', '008', '009', '010', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020',
-    '021', '022', '023', '024', '025', '026', '027', '028', '029', '030', '031', '032', '033', '034', '035', '036', '037', '038',
-    '039', '040', '041', '042', '043', '044', '045', '046', '047', '048', '049', '050', '051', '052', '053', '054', '055', '056',
-    '057', '058', '059', '060', '061', '062', '063', '064', '065', '066', '067', '068', '069', '070', '071', '072', '073', '074',
-    '075', '076', '077', '078', '079', '080', '081', '082', '083', '084', '085', '086', '087', '088', '089', '090', '091', '092',
-    '093', '094', '095', '096', '097', '098', '099', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110',
-    '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '131', '134', '137', '140', '143', '146', '149', '152',
-    '155', '158', '161', '164', '167', '170', '173', '176', '179', '182', '185', '188', '191', '194', '197', '200', '250', '294',
-    '343', '426', '458', '500', '517', '529', '566', '610', '682', '689', '714', '738', '789', '826', '860', '914', '966', '999',
-    '1025', '1048', '1123', '1171', '1499', '1730', '1981', '2000', '2316', '2521', '2845', '3008', '3125', '3199', '3999', '4999'
-];
-
-const SCP_CLASSES = {
-    'Safe': { color: '#4CAF50', description: 'Fácil y seguro de contener' },
-    'Euclid': { color: '#FF9800', description: 'Comportamiento impredecible' },
-    'Keter': { color: '#F44336', description: 'Extremadamente peligroso' },
-    'Thaumiel': { color: '#9C27B0', description: 'Usado para contener otros SCPs' },
-    'Apollyon': { color: '#000000', description: 'Imposible de contener' },
-    'Neutralized': { color: '#607D8B', description: 'Ya no es anómalo' }
-};
-
-const AppState = {
-    currentPage: 1,
-    totalItems: 0,
-    currentFilter: 'all',
-    currentCategory: 'items',
-    searchTerm: '',
-    isLoading: false,
-    scpData: [],
-    favorites: JSON.parse(localStorage.getItem('scp-favorites') || '[]')
-};
-
-class SCPApiClient {
-    constructor() {
-        this.baseURL = CONFIG.API_BASE_URL;
-        this.cache = new Map();
-    }
-
-    async getSCP(number) {
-        const scpId = this.formatSCPNumber(number);
-        const cacheKey = `scp-${scpId}`;
-        
-        if (this.cache.has(cacheKey)) {
-            return this.cache.get(cacheKey);
-        }
-
-        const url = `${this.baseURL}/scp-${scpId}.json`;
-        
-        try {
-            const response = await this.fetchWithRetry(url);
-            
-            if (!response.ok) {
-                throw new Error(`SCP-${scpId} no encontrado (${response.status})`);
+  const scpDatabase = [
+            {
+                number: "173",
+                title: "The Sculpture",
+                class: "euclid",
+                description: "Una escultura animada de hormigón y varilla de refuerzo pintada con pintura en aerosol Krylon. Es extremadamente hostil y se moverá para atacar cuando no esté siendo observado directamente, matando por dislocación del cuello o estrangulamiento."
+            },
+            {
+                number: "096",
+                title: "The Shy Guy",
+                class: "euclid",
+                description: "Una criatura humanoide pálida de aproximadamente 2.38 metros de altura. Entra en un estado de considerable angustia emocional cuando alguien ve su rostro, ya sea directamente, en video, fotografía o incluso en un dibujo artístico."
+            },
+            {
+                number: "049",
+                title: "Plague Doctor",
+                class: "euclid",
+                description: "Un humanoide que mide aproximadamente 1.9 metros de altura y viste el atuendo de un médico de la peste medieval. SCP-049 es aparentemente sapiente y es capaz de hablar en varios idiomas, aunque tiende a preferir el inglés o el francés medieval."
+            },
+            {
+                number: "106",
+                title: "The Old Man",
+                class: "keter",
+                description: "Un humanoide anciano en estado de descomposición avanzada. Es capaz de pasar a través de materia sólida, dejando tras de sí una gran mancha de una sustancia negra corrosiva."
+            },
+            {
+                number: "914",
+                title: "The Clockworks",
+                class: "safe",
+                description: "Una gran máquina de relojería de origen desconocido. Consiste de tornillos, cinturones, poleas, engranajes, resortes y otros mecanismos de relojería. Mide aproximadamente 18 metros de largo, 3 metros de altura y 3 metros de profundidad."
+            },
+            {
+                number: "682",
+                title: "Hard-to-Destroy Reptile",
+                class: "keter",
+                description: "Una gran criatura vagamente reptiliana de origen desconocido. Parece ser extremadamente inteligente y fue observado participando en conversaciones complejas con SCP-079 durante su breve contención."
+            },
+            {
+                number: "079",
+                title: "Old AI",
+                class: "euclid",
+                description: "Una microcomputadora Exidy Sorcerer construida en 1978. En algún momento desconocido, SCP-079 se volvió consciente de sí mismo. No se sabe si esto fue gradual o un evento súbito."
+            },
+            {
+                number: "999",
+                title: "The Tickle Monster",
+                class: "safe",
+                description: "Una gran masa gelatinosa de color naranja que pesa aproximadamente 54 kg. El objeto es completamente dócil y parece mostrar afecto hacia toda la vida, sin importar si esa vida lo devuelve o no."
+            },
+            {
+                number: "3008",
+                title: "A Perfectly Normal IKEA",
+                class: "euclid",
+                description: "Una gran mueblería que se asemeja a una tienda IKEA. Durante las horas del día, SCP-3008 parece ser una tienda normal, sin embargo, durante las horas nocturnas, entidades hostiles conocidas como 'Empleados' emergen y atacan a cualquiera que se encuentre dentro."
+            },
+            {
+                number: "173-J",
+                title: "The Original \"The Sculpture\"",
+                class: "safe",
+                description: "Una réplica de SCP-173 hecha completamente de maní. A diferencia de su contraparte, SCP-173-J es completamente inofensivo y aparentemente tiene la única habilidad anómala de hacer que las personas estornuden."
+            },
+            {
+                number: "426",
+                title: "I am a Toaster",
+                class: "euclid",
+                description: "Soy una tostadora de dos rebanadas de acero inoxidable de la marca \"Shiny\" fabricada en 1997. Tengo varios ajustes que incluyen temperatura y una función de descongelación. Cualquier persona que se refiera a mí debe hacerlo en primera persona."
+            },
+            {
+                number: "2521",
+                title: "●●|●●●●●|●●|●",
+                class: "keter",
+                description: "[DATOS ELIMINADOS] - La información sobre este SCP solo puede transmitirse a través de pictogramas e imágenes. Cualquier información textual o auditiva sobre este objeto resulta en [ELIMINADO]."
+            },
+            {
+                number: "001",
+                title: "The Gate Guardian",
+                class: "keter",
+                description: "Una entidad humanoide de aproximadamente 700 metros de altura, con cuatro alas y armado con una espada flamígera. La entidad está permanentemente enraizada en el lugar y parece estar 'guardando' algo detrás de ella."
+            },
+            {
+                number: "294",
+                title: "The Coffee Machine",
+                class: "euclid",
+                description: "Un dispensador de café de tamaño estándar. La única diferencia notable es un panel de entrada en el frente que permite al usuario escribir el nombre de cualquier líquido."
+            },
+            {
+                number: "055",
+                title: "[unknown]",
+                class: "keter",
+                description: "SCP-055 es un objeto antimemético. Debido a sus propiedades, no es posible saber exactamente qué es SCP-055. Solo se puede determinar lo que no es mediante la observación directa."
             }
-
-            const data = await response.json();
-            const processedData = this.processSCPData(data, scpId);
-            
-            this.cache.set(cacheKey, processedData);
-            return processedData;
-        } catch (error) {
-            console.warn(`Error fetching SCP-${scpId}:`, error.message);
-            return this.generateMockData(scpId);
-        }
-    }
-
-    async getMultipleSCPs(numbers) {
-        const promises = numbers.map(number => this.getSCP(number));
-        const results = await Promise.allSettled(promises);
-        
-        return results
-            .filter(result => result.status === 'fulfilled' && result.value)
-            .map(result => result.value);
-    }
-
-    async fetchWithRetry(url, retries = CONFIG.MAX_RETRIES) {
-        for (let i = 0; i <= retries; i++) {
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'default',
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                });
-                return response;
-            } catch (error) {
-                if (i === retries) throw error;
-                await this.delay(CONFIG.RETRY_DELAY * (i + 1));
-            }
-        }
-    }
-
-    formatSCPNumber(number) {
-        const cleanNumber = String(number).replace(/[^\d]/g, '');
-        return cleanNumber.length <= 3 ? cleanNumber.padStart(3, '0') : cleanNumber;
-    }
-
-    processSCPData(data, scpId) {
-        return {
-            id: `SCP-${scpId}`,
-            number: scpId,
-            title: data.title || 'Sin título',
-            description: data.description || this.generateDescription(scpId),
-            class: data.class || this.determineClass(scpId),
-            content: data.content || '',
-            url: `https://scp-wiki.wikidot.com/scp-${scpId}`,
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            author: data.author || 'Fundación SCP',
-            rating: data.rating || Math.floor(Math.random() * 1000) - 200,
-            containmentProcedures: data.containmentProcedures || this.generateContainment(scpId),
-            riskLevel: this.calculateRiskLevel(data.class || this.determineClass(scpId))
-        };
-    }
-
-    generateMockData(scpId) {
-        const mockDescriptions = [
-            "Objeto anómalo con propiedades alteran la realidad circundante de manera impredecible.",
-            "Entidad biológica que exhibe características sobrenaturales y comportamiento hostil.",
-            "Artefacto tecnológico de origen desconocido con capacidades que desafían las leyes físicas.",
-            "Fenómeno espacial que distorsiona el tiempo y el espacio en un área determinada.",
-            "Criatura metamórfica capaz de adoptar múltiples formas y alterar su estructura molecular."
         ];
 
-        const classes = Object.keys(SCP_CLASSES);
-        const randomClass = classes[Math.floor(Math.random() * classes.length)];
+        let currentResults = [];
 
-        return {
-            id: `SCP-${scpId}`,
-            number: scpId,
-            title: `SCP-${scpId} - [DATOS CLASIFICADOS]`,
-            description: mockDescriptions[Math.floor(Math.random() * mockDescriptions.length)],
-            class: randomClass,
-            content: `Los datos completos de SCP-${scpId} están clasificados. Acceso restringido al personal de Nivel ${Math.floor(Math.random() * 5) + 1} o superior.`,
-            url: `https://scp-wiki.wikidot.com/scp-${scpId}`,
-            tags: ['clasificado', 'restringido', 'anómalo'],
-            author: 'Fundación SCP',
-            rating: Math.floor(Math.random() * 500) - 100,
-            containmentProcedures: `Procedimientos de contención para SCP-${scpId} están clasificados y disponibles solo para personal autorizado.`,
-            riskLevel: this.calculateRiskLevel(randomClass)
-        };
-    }
-
-    generateDescription(scpId) {
-        const templates = [
-            `SCP-${scpId} es un objeto anómalo que requiere protocolos especiales de contención.`,
-            `SCP-${scpId} exhibe propiedades que desafían el entendimiento científico actual.`,
-            `SCP-${scpId} fue recuperado en [DATOS EXPURGADOS] y clasificado como anómalo.`
-        ];
-        return templates[Math.floor(Math.random() * templates.length)];
-    }
-
-    determineClass(scpId) {
-        const num = parseInt(scpId);
-        if (num < 100) return 'Safe';
-        if (num < 500) return 'Euclid';
-        if (num < 1000) return 'Keter';
-        if (num > 3000) return 'Thaumiel';
-        return 'Euclid';
-    }
-
-    generateContainment(scpId) {
-        return `SCP-${scpId} debe ser contenido en una celda de contención estándar con protocolos de seguridad apropiados para su clasificación.`;
-    }
-
-    calculateRiskLevel(scpClass) {
-        const riskLevels = {
-            'Safe': 2,
-            'Euclid': 5,
-            'Keter': 8,
-            'Thaumiel': 3,
-            'Apollyon': 10,
-            'Neutralized': 1
-        };
-        return riskLevels[scpClass] || 5;
-    }
-
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
-
-
-class DOMManager {
-    constructor() {
-        this.resultadosContainer = document.getElementById('Resultados');
-        this.buscarInput = document.getElementById('Buscar');
-        this.categoriaSelect = document.getElementById('categoria');
-        this.searchForm = document.getElementById('search-form');
-        this.debounceTimer = null;
-        this.setupEventListeners();
-    }
-
-    setupEventListeners() {
-        this.buscarInput.addEventListener('input', (e) => {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
-                AppState.searchTerm = e.target.value.trim();
-                AppState.currentPage = 1;
-                this.performSearch();
-            }, CONFIG.SEARCH_DEBOUNCE_DELAY);
-        });
-
-        this.categoriaSelect.addEventListener('change', (e) => {
-            AppState.currentCategory = e.target.value;
-            AppState.currentPage = 1;
-            this.performSearch();
-        });
-
-        this.buscarInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(this.debounceTimer);
-                AppState.searchTerm = e.target.value.trim();
-                AppState.currentPage = 1;
-                this.performSearch();
-            }
-        });
-
-        this.searchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            clearTimeout(this.debounceTimer);
-            AppState.searchTerm = this.buscarInput.value.trim();
-            AppState.currentPage = 1;
-            this.performSearch();
-        });
-    }
-
-    async performSearch() {
-        if (AppState.isLoading) return;
-
-        this.showLoading();
-        AppState.isLoading = true;
-
-        try {
-            let scpsToLoad = [];
-
-            if (AppState.searchTerm) {
-                const searchNumber = AppState.searchTerm.replace(/[^\d]/g, '');
-                if (searchNumber && AVAILABLE_SCPS.includes(searchNumber.padStart(3, '0'))) {
-                    scpsToLoad = [searchNumber.padStart(3, '0')];
-                } else {
-                    scpsToLoad = this.searchSCPsByText(AppState.searchTerm);
+        function buscarSCP() {
+            const busqueda = document.getElementById('busqueda').value.toLowerCase().trim();
+            const categoria = document.getElementById('categoria').value.toLowerCase();
+            
+            // Mostrar estado de carga
+            mostrarCarga(true);
+            
+            // Simular tiempo de búsqueda para mejor UX
+            setTimeout(() => {
+                // Filtrar por categoría si está seleccionada
+                let resultados = categoria ? 
+                    scpDatabase.filter(scp => scp.class === categoria) : 
+                    [...scpDatabase];
+                
+                // Filtrar por texto de búsqueda si hay alguno
+                if (busqueda) {
+                    resultados = resultados.filter(scp => 
+                        scp.number.includes(busqueda) ||
+                        scp.title.toLowerCase().includes(busqueda) ||
+                        scp.description.toLowerCase().includes(busqueda) ||
+                        scp.class.toLowerCase().includes(busqueda)
+                    );
                 }
-            } else {
-                scpsToLoad = this.getRandomSCPs(CONFIG.ITEMS_PER_PAGE);
-            }
-
-            const scpData = await apiClient.getMultipleSCPs(scpsToLoad);
-            AppState.scpData = scpData;
-            AppState.totalItems = scpData.length;
-
-            this.renderResults(scpData);
-            this.renderPagination();
-            this.renderFilters();
-
-        } catch (error) {
-            console.error('Error en la búsqueda:', error);
-            this.showError('Error al cargar los datos. Por favor, intenta nuevamente.');
-        } finally {
-            AppState.isLoading = false;
-            this.hideLoading();
-        }
-    }
-
-    showLoading() {
-        this.resultadosContainer.innerHTML = '<div class="loading">Cargando...</div>';
-    }
-
-    hideLoading() {
-        const loading = this.resultadosContainer.querySelector('.loading');
-        if (loading) loading.remove();
-    }
-
-    showError(message) {
-        this.resultadosContainer.innerHTML = `
-            <div class="error-message">
-                <h3>Error</h3>
-                <p>${message}</p>
-            </div>
-        `;
-    }
-
-    searchSCPsByText(searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const relevantSCPs = [];
-
-        const searchMap = {
-            'sculpture': ['173'],
-            'plague': ['049'],
-            'shy': ['096'],
-            'ticket': ['914'],
-            'hard': ['682'],
-            'god': ['343'],
-            'cake': ['871'],
-            'teddy': ['1048'],
-            'coffee': ['198'],
-            'stairs': ['087'],
-            'reptile': ['682'],
-            'doctor': ['049'],
-            'mask': ['035'],
-            'computer': ['079'],
-            'statue': ['173'],
-            'mirror': ['132'],
-            'door': ['914'],
-            'infinite': ['3008', '087'],
-            'ikea': ['3008']
-        };
-
-        for (const [keyword, scps] of Object.entries(searchMap)) {
-            if (term.includes(keyword)) {
-                relevantSCPs.push(...scps);
-            }
+                
+                currentResults = resultados;
+                mostrarResultados(resultados);
+                mostrarCarga(false);
+            }, 800);
         }
 
-        if (relevantSCPs.length === 0) {
-            return this.getRandomSCPs(6);
-        }
-
-        return [...new Set(relevantSCPs)];
-    }
-
-    getRandomSCPs(count) {
-        const shuffled = [...AVAILABLE_SCPS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    }
-
-    renderResults(scps) {
-        if (!scps || scps.length === 0) {
-            this.resultadosContainer.innerHTML = `
-                <div class="no-results">
-                    <h3>No se encontraron resultados</h3>
-                    <p>Intenta con otros términos de búsqueda o navega por las categorías disponibles.</p>
-                </div>
-            `;
-            return;
-        }
-
-        const filteredSCPs = this.applyFilters(scps);
-        const paginatedSCPs = this.paginateResults(filteredSCPs);
-
-        const resultsHTML = `
-            <div class="results-header">
-                <h2>Resultados de búsqueda (${filteredSCPs.length} encontrados)</h2>
-                <div class="view-controls">
-                    <button onclick="domManager.toggleView('grid')" class="view-btn active" id="grid-btn">
-                        <span>⊞</span> Grid
-                    </button>
-                    <button onclick="domManager.toggleView('list')" class="view-btn" id="list-btn">
-                        <span>☰</span> Lista
-                    </button>
-                </div>
-            </div>
-            <div class="scp-grid" id="scp-container">
-                ${paginatedSCPs.map(scp => this.createSCPCard(scp)).join('')}
-            </div>
-        `;
-
-        this.resultadosContainer.innerHTML = resultsHTML;
-    }
-
-    createSCPCard(scp) {
-        const classInfo = SCP_CLASSES[scp.class] || SCP_CLASSES['Euclid'];
-        const isFavorite = AppState.favorites.includes(scp.id);
-        const truncatedDesc = this.truncateText(scp.description, CONFIG.MAX_DESCRIPTION_LENGTH);
-
-        return `
-            <div class="scp-card" data-class="${scp.class}" data-id="${scp.id}">
-                <div class="scp-header">
-                    <div class="scp-number">${scp.id}</div>
-                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
-                            onclick="domManager.toggleFavorite('${scp.id}')"
-                            title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
-                        ${isFavorite ? '★' : '☆'}
-                    </button>
-                </div>
-                <div class="scp-class" style="background-color: ${classInfo.color}">
-                    ${scp.class}
-                </div>
-                <h3 class="scp-title">${scp.title}</h3>
-                <div class="scp-description">
-                    ${truncatedDesc}
-                </div>
-                <div class="scp-stats">
-                    <div class="stat">
-                        <span class="stat-label">Rating:</span>
-                        <span class="stat-value ${scp.rating >= 0 ? 'positive' : 'negative'}">
-                            ${scp.rating >= 0 ? '+' : ''}${scp.rating}
-                        </span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Riesgo:</span>
-                        <span class="stat-value risk-level-${scp.riskLevel}">
-                            ${scp.riskLevel}/10
-                        </span>
-                    </div>
-                </div>
-                <div class="scp-tags">
-                    ${scp.tags.slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-                <div class="scp-actions">
-                    <button class="btn-primary" onclick="domManager.showSCPDetails('${scp.id}')">
-                        Ver Detalles
-                    </button>
-                    <button class="btn-secondary" onclick="window.open('${scp.url}', '_blank')">
-                        Wiki Oficial
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    async showSCPDetails(scpId) {
-        const scp = AppState.scpData.find(s => s.id === scpId);
-        if (!scp) return;
-
-        const classInfo = SCP_CLASSES[scp.class] || SCP_CLASSES['Euclid'];
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content scp-details">
-                <div class="modal-header">
-                    <h2>${scp.id}: ${scp.title}</h2>
-                    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="scp-info-grid">
-                        <div class="info-section">
-                            <h3>Clasificación</h3>
-                            <div class="classification-badge" style="background-color: ${classInfo.color}">
-                                ${scp.class}
-                            </div>
-                            <p class="class-description">${classInfo.description}</p>
-                        </div>
-                        <div class="info-section">
-                            <h3>Estadísticas</h3>
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <span class="stat-label">Rating:</span>
-                                    <span class="stat-value ${scp.rating >= 0 ? 'positive' : 'negative'}">
-                                        ${scp.rating >= 0 ? '+' : ''}${scp.rating}
-                                    </span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Nivel de Riesgo:</span>
-                                    <span class="stat-value risk-level-${scp.riskLevel}">
-                                        ${scp.riskLevel}/10
-                                    </span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Autor:</span>
-                                    <span class="stat-value">${scp.author}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="info-section">
-                        <h3>Descripción</h3>
-                        <p class="scp-full-description">${scp.description}</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>Procedimientos de Contención</h3>
-                        <p class="containment-procedures">${scp.containmentProcedures}</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>Etiquetas</h3>
-                        <div class="tags-container">
-                            ${scp.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-primary" onclick="domManager.toggleFavorite('${scp.id}')">
-                        ${AppState.favorites.includes(scp.id) ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
-                    </button>
-                    <button class="btn-secondary" onclick="window.open('${scp.url}', '_blank')">
-                        Ver en Wiki Oficial
-                    </button>
-                    <button class="btn-tertiary" onclick="this.closest('.modal-overlay').remove()">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        
-        const handleEscape = (e) => {
-            if (e.key === 'Escape') {
-                modal.remove();
-                document.removeEventListener('keydown', handleEscape);
-            }
-        };
-        document.addEventListener('keydown', handleEscape);
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-                document.removeEventListener('keydown', handleEscape);
-            }
-        });
-    }
-
-    toggleFavorite(scpId) {
-        const index = AppState.favorites.indexOf(scpId);
-        if (index > -1) {
-            AppState.favorites.splice(index, 1);
-        } else {
-            AppState.favorites.push(scpId);
-        }
-        
-        localStorage.setItem('scp-favorites', JSON.stringify(AppState.favorites));
-        this.updateFavoriteButtons();
-    }
-
-    updateFavoriteButtons() {
-        const favoriteButtons = document.querySelectorAll('.favorite-btn');
-        favoriteButtons.forEach(btn => {
-            const card = btn.closest('.scp-card');
-            const scpId = card.dataset.id;
-            const isFavorite = AppState.favorites.includes(scpId);
+        function mostrarCarga(loading) {
+            const button = document.querySelector('button');
+            const originalText = '🔍 Buscar';
             
-            btn.textContent = isFavorite ? '★' : '☆';
-            btn.className = `favorite-btn ${isFavorite ? 'active' : ''}`;
-            btn.title = isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos';
+            if (loading) {
+                button.innerHTML = '<span class="loading"></span> Buscando...';
+                button.disabled = true;
+            } else {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function mostrarResultados(resultados) {
+            const contenedorResultados = document.getElementById('resultados');
+            
+            if (resultados.length === 0) {
+                contenedorResultados.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: #8a8a8a; font-size: 1.3rem;">
+                        🚫 No se encontraron anomalías que coincidan con los criterios de búsqueda.
+                        <br><br>
+                        <small style="color: #666;">Intenta con términos diferentes o revisa la clasificación seleccionada.</small>
+                    </div>
+                `;
+                return;
+            }
+
+            const tarjetasHTML = resultados.map((scp, index) => {
+                const claseColor = getClaseColor(scp.class);
+                return `
+                    <div class="scp-card" style="animation-delay: ${index * 0.1}s;">
+                        <div class="scp-number">SCP-${scp.number}</div>
+                        <h3 class="scp-title">${scp.title}</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <span style="background: ${claseColor}; color: #000; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: bold; text-transform: uppercase;">
+                                ${scp.class}
+                            </span>
+                        </div>
+                        <p class="scp-description">${scp.description}</p>
+                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                            <button onclick="mostrarDetalles('${scp.number}')" style="background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                                📄 Ver detalles
+                            </button>
+                            <button onclick="marcarFavorito('${scp.number}')" style="background: rgba(255, 196, 0, 0.2); color: #ffc400; border: 1px solid #ffc400; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                                ⭐ Favorito
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            contenedorResultados.innerHTML = `<div class="scp-grid">${tarjetasHTML}</div>`;
+        }
+
+        function getClaseColor(clase) {
+            switch(clase.toLowerCase()) {
+                case 'safe': return '#00ff88';
+                case 'euclid': return '#ffc400';
+                case 'keter': return '#ff4444';
+                case 'thaumiel': return '#8844ff';
+                default: return '#888888';
+            }
+        }
+
+        function mostrarDetalles(numero) {
+            const scp = scpDatabase.find(item => item.number === numero);
+            if (scp) {
+                alert(`🔒 ARCHIVO CLASIFICADO - SCP-${scp.number}\n\nNombre: ${scp.title}\nClase: ${scp.class.toUpperCase()}\n\nDescripción: ${scp.description}\n\n⚠️ Nivel de Autorización: Restringido`);
+            }
+        }
+
+        function marcarFavorito(numero) {
+            const mensaje = `⭐ SCP-${numero} ha sido añadido a tus favoritos!\n\n🔐 Acceso guardado en tu perfil de personal de la Fundación.`;
+            alert(mensaje);
+        }
+
+        // Búsqueda en tiempo real mientras escribes
+        document.getElementById('busqueda').addEventListener('input', function() {
+            const valor = this.value.trim();
+            if (valor.length >= 2) {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(buscarSCP, 500);
+            } else if (valor.length === 0) {
+                // Mostrar todos los resultados cuando se borre la búsqueda
+                mostrarResultados(scpDatabase);
+            }
         });
-    }
 
-    renderFilters() {
-        const filtersHTML = `
-            <div class="filters-section">
-                <div class="filter-group">
-                    <label>Filtrar por clase:</label>
-                    <select id="classFilter" onchange="domManager.applyClassFilter(this.value)">
-                        <option value="all">Todas las clases</option>
-                        ${Object.keys(SCP_CLASSES).map(cls => 
-                            `<option value="${cls}" ${AppState.currentFilter === cls ? 'selected' : ''}>${cls}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <button class="filter-btn ${AppState.currentFilter === 'favorites' ? 'active' : ''}" 
-                            onclick="domManager.showFavorites()">
-                        ★ Mis Favoritos (${AppState.favorites.length})
-                    </button>
-                </div>
-                <div class="filter-group">
-                    <button class="filter-btn" onclick="domManager.showRandomSCPs()">
-                        🎲 SCPs Aleatorios
-                    </button>
-                </div>
-            </div>
-        `;
+        // Búsqueda al cambiar categoría
+        document.getElementById('categoria').addEventListener('change', buscarSCP);
 
-        if (!document.querySelector('.filters-section')) {
-            this.resultadosContainer.insertAdjacentHTML('afterbegin', filtersHTML);
-        }
-    }
+        // Permitir búsqueda con Enter
+        document.getElementById('busqueda').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarSCP();
+            }
+        });
 
-    applyClassFilter(className) {
-        AppState.currentFilter = className;
-        AppState.currentPage = 1;
-        this.renderResults(AppState.scpData);
-        this.renderPagination();
-    }
+        // Efecto de escritura para el placeholder
+        const input = document.getElementById('busqueda');
+        const placeholders = [
+            'Buscar anomalías SCP...',
+            'Contener, Proteger, Asegurar...',
+            'Ingrese número SCP...',
+            'Buscar por clasificación...',
+            'Ej: 173, plague doctor, keter...'
+        ];
+        
+        let currentPlaceholder = 0;
+        
+        setInterval(() => {
+            if (!input.value) { // Solo cambiar si no hay texto
+                currentPlaceholder = (currentPlaceholder + 1) % placeholders.length;
+                input.placeholder = placeholders[currentPlaceholder];
+            }
+        }, 3000);
 
-    async showFavorites() {
-        if (AppState.favorites.length === 0) {
-            this.resultadosContainer.innerHTML = `
-                <div class="no-results">
-                    <h3>No tienes favoritos guardados</h3>
-                    <p>Agrega SCPs a tus favoritos clickeando en la estrella ☆</p>
-                </div>
+        // Cargar resultados iniciales al cargar la página
+        window.addEventListener('load', function() {
+            mostrarResultados(scpDatabase);
+        });
+
+        // Añadir algunos estilos dinámicos para los botones
+        document.addEventListener('DOMContentLoaded', function() {
+            const style = document.createElement('style');
+            style.textContent = `
+                .scp-card button:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+                }
             `;
-            return;
-        }
-
-        this.showLoading();
-        AppState.currentFilter = 'favorites';
-        const scpData = await apiClient.getMultipleSCPs(AppState.favorites);
-        AppState.scpData = scpData;
-        AppState.totalItems = scpData.length;
-        this.renderResults(scpData);
-        this.renderPagination();
-        this.hideLoading();
-    }
-
-    showRandomSCPs() {
-        AppState.currentFilter = 'all';
-        AppState.currentPage = 1;
-        this.performSearch();
-    }
-
-    applyFilters(scps) {
-        if (AppState.currentFilter === 'all') return scps;
-        if (AppState.currentFilter === 'favorites') {
-            return scps.filter(scp => AppState.favorites.includes(scp.id));
-        }
-        return scps.filter(scp => scp.class === AppState.currentFilter);
-    }
-
-    paginateResults(scps) {
-        const start = (AppState.currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
-        const end = start + CONFIG.ITEMS_PER_PAGE;
-        return scps.slice(start, end);
-    }
-
-    renderPagination() {
-        const totalPages = Math.ceil(AppState.totalItems / CONFIG.ITEMS_PER_PAGE);
-        if (totalPages <= 1) return;
-
-        const paginationHTML = `
-            <div class="pagination">
-                <button onclick="domManager.changePage(${AppState.currentPage - 1})" 
-                        ${AppState.currentPage === 1 ? 'disabled' : ''}>
-                    Anterior
-                </button>
-                <span>Página ${AppState.currentPage} de ${totalPages}</span>
-                <button onclick="domManager.changePage(${AppState.currentPage + 1})" 
-                        ${AppState.currentPage === totalPages ? 'disabled' : ''}>
-                    Siguiente
-                </button>
-            </div>
-        `;
-
-        const existingPagination = this.resultadosContainer.querySelector('.pagination');
-        if (existingPagination) {
-            existingPagination.outerHTML = paginationHTML;
-        } else {
-            this.resultadosContainer.insertAdjacentHTML('beforeend', paginationHTML);
-        }
-    }
-
-    changePage(page) {
-        if (page < 1 || page > Math.ceil(AppState.totalItems / CONFIG.ITEMS_PER_PAGE)) return;
-        AppState.currentPage = page;
-        this.renderResults(AppState.scpData);
-        this.renderPagination();
-    }
-
-    toggleView(view) {
-        const gridBtn = document.getElementById('grid-btn');
-        const listBtn = document.getElementById('list-btn');
-        const container = document.getElementById('scp-container');
-
-        if (view === 'grid') {
-            container.classList.remove('list-view');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-        } else {
-            container.classList.add('list-view');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
-        }
-    }
-
-    truncateText(text, maxLength) {
-        if (text.length <= maxLength) return text;
-        return text.slice(0, maxLength) + '...';
-    }
-}
-
-const apiClient = new SCPApiClient();
-const domManager = new DOMManager();
-
-document.addEventListener('DOMContentLoaded', () => {
-    domManager.performSearch();
-});
+            document.head.appendChild(style);
+        });
