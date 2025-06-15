@@ -3,57 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCP Foundation Enhanced</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>Digimon Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <link rel="stylesheet" href="./estilos/css/estilos.css">
-    <link rel="shortcut icon" href="./estilos/icons/icon.png" type="image/png">
+    <link rel="icon" href="./estilos/icons/logo.png" type="image/png">
 </head>
 <body>
-    <div class="fondo">
-        <img src="./estilos/icons/Logo.png" alt="SCP Logo">
-    </div>
-
-    <div class="encabezado">
-        <h1>SCP Foundation</h1>
-        <div class="busqueda">
-            <select id="categoria">
-                <option value="">Todas las categorías</option>
-                <option value="safe">Safe</option>
-                <option value="euclid">Euclid</option>
-                <option value="keter">Keter</option>
-                <option value="thaumiel">Thaumiel</option>
-            </select>
-            <input type="text" id="busqueda" placeholder="Buscar anomalías SCP...">
-            <button onclick="buscarSCP()">🔍 Buscar</button>
-        </div>
-    </div>
-
-    <div class="contenedor">
-        <div class="resultados" id="resultados">
-            <!-- Ejemplo de tarjeta SCP -->
-            <div class="scp-grid">
-                <div class="scp-card">
-                    <div class="scp-number">SCP-173</div>
-                    <h3 class="scp-title">The Sculpture</h3>
-                    <p class="scp-description">
-                        Una escultura animada de hormigón y varilla de refuerzo pintada con pintura en aerosol Krylon. 
-                        Es extremadamente hostil y se moverá para atacar cuando no esté siendo observado directamente, 
-                        matando por dislocación del cuello o estrangulamiento.
-                    </p>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <i class="fas fa-dragon"></i> Digimon Explorer
                 </div>
-                
-                <div class="scp-card">
-                    <div class="scp-number">SCP-096</div>
-                    <h3 class="scp-title">The Shy Guy</h3>
-                    <p class="scp-description">
-                        Una criatura humanoide pálida de aproximadamente 2.38 metros de altura. Entra en un estado de 
-                        considerable angustia emocional cuando alguien ve su rostro, ya sea directamente, en video, 
-                        fotografía o incluso en un dibujo artístico.
-                    </p>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar Digimon...">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
                 </div>
             </div>
         </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats" id="stats">
+            <h2>Estadísticas del Mundo Digimon</h2>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated here -->
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label><strong>Filtrar por nivel:</strong></label>
+                <select class="filter-select" id="levelFilter">
+                    <option value="">Todos los niveles</option>
+                </select>
+                
+                <button class="page-btn" id="sortBtn">
+                    <i class="fas fa-sort-alpha-down"></i> Ordenar A-Z
+                </button>
+                
+                <button class="page-btn" id="randomBtn">
+                    <i class="fas fa-random"></i> Digimon Aleatorio
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            Cargando Digimon...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="noResults" class="no-results" style="display: none;">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <p>No se encontraron Digimon con esos criterios de búsqueda.</p>
+        </div>
+
+        <div class="grid" id="digimonGrid">
+            <!-- Digimon cards will be populated here -->
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be populated here -->
+        </div>
     </div>
-    <script src="./funcion/main.js"></script>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="modalContent">
+                <!-- Modal content will be populated here -->
+            </div>
+        </div>
+    </div>
+<script src="./funcion/main.js"></script>
 </body>
 </html>
