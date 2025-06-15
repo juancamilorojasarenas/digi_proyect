@@ -1,25 +1,22 @@
 class DigimonExplorer {
     constructor() {
-        // Inicialización de propiedades
-        this.allDigimon = []; // Lista completa de Digimon
-        this.filteredDigimon = []; // Lista de Digimon filtrados
-        this.currentPage = 1; // Página actual
-        this.itemsPerPage = 6; // Número de items por página (reducido de 12 a 6)
-        this.currentSort = 'default'; // Orden actual ('default', 'asc', 'desc')
-        this.currentLevel = ''; // Nivel seleccionado para filtrar
-        this.currentSearch = ''; // Búsqueda actual
-        this.totalPages = 1; // Total de páginas
+        this.allDigimon = [];
+        this.filteredDigimon = [];
+        this.currentPage = 1;
+        this.itemsPerPage = 6;
+        this.currentSort = 'default';
+        this.currentLevel = '';
+        this.currentSearch = '';
+        this.totalPages = 1;
         this.stats = {
-            total: 0, // Total de Digimon
-            levels: {}, // Estadísticas de niveles
-            favorites: this.loadFavorites() // Lista de favoritos
+            total: 0,
+            levels: {},
+            favorites: this.loadFavorites()
         };
         
-        // Inicializar la aplicación
         this.init();
     }
 
-    // Cargar favoritos (usando una variable global en lugar de localStorage)
     loadFavorites() {
         if (!window.digimonFavorites) {
             window.digimonFavorites = [];
@@ -27,24 +24,19 @@ class DigimonExplorer {
         return window.digimonFavorites;
     }
 
-    // Guardar favoritos
     saveFavorites() {
         window.digimonFavorites = this.stats.favorites;
     }
 
-    // Inicializar la aplicación
     async init() {
-        this.bindEvents(); // Vincular eventos
-        await this.loadDigimon(); // Cargar datos de Digimon
-        // Verificar niveles únicos en los datos cargados
-        console.log("Niveles reales:", [...new Set(this.allDigimon.map(d => d.level))]);
-        this.populateLevelFilterFromDigimon(); // Llenar el filtro de niveles
-        this.updateStats(); // Actualizar estadísticas
-        this.renderDigimon(); // Renderizar la lista de Digimon
-        this.renderPagination(); // Renderizar la paginación
+        this.bindEvents();
+        await this.loadDigimon();
+        this.populateLevelFilterFromDigimon();
+        this.updateStats();
+        this.renderDigimon();
+        this.renderPagination();
     }
 
-    // Vincular eventos a los elementos del DOM
     bindEvents() {
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -56,14 +48,11 @@ class DigimonExplorer {
         const itemsPerPageSelect = document.getElementById('itemsPerPageSelect');
 
         if (searchInput) {
-            // Evento de input para búsqueda en tiempo real
             searchInput.addEventListener('input', (e) => {
                 this.currentSearch = e.target.value.toLowerCase();
-                this.currentPage = 1; // Reiniciar a la primera página
+                this.currentPage = 1;
                 this.filterAndRender();
             });
-
-            // Evento de tecla para búsqueda con Enter
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     this.currentPage = 1;
@@ -73,7 +62,6 @@ class DigimonExplorer {
         }
 
         if (searchBtn) {
-            // Evento de clic para búsqueda
             searchBtn.addEventListener('click', () => {
                 this.currentPage = 1;
                 this.filterAndRender();
@@ -81,7 +69,6 @@ class DigimonExplorer {
         }
 
         if (levelFilter) {
-            // Evento de cambio para filtro de nivel
             levelFilter.addEventListener('change', (e) => {
                 this.currentLevel = e.target.value;
                 this.currentPage = 1;
@@ -90,28 +77,24 @@ class DigimonExplorer {
         }
 
         if (sortBtn) {
-            // Evento de clic para cambiar el orden
             sortBtn.addEventListener('click', () => {
                 this.toggleSort();
             });
         }
 
         if (randomBtn) {
-            // Evento de clic para mostrar un Digimon aleatorio
             randomBtn.addEventListener('click', () => {
                 this.showRandomDigimon();
             });
         }
 
         if (closeBtn) {
-            // Evento de clic para cerrar el modal
             closeBtn.addEventListener('click', () => {
                 this.closeModal();
             });
         }
 
         if (modal) {
-            // Cerrar modal al hacer clic fuera del contenido
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     this.closeModal();
@@ -120,15 +103,13 @@ class DigimonExplorer {
         }
 
         if (itemsPerPageSelect) {
-            // Evento de cambio para ajustar items por página
             itemsPerPageSelect.addEventListener('change', (e) => {
                 this.itemsPerPage = parseInt(e.target.value);
-                this.currentPage = 1; // Vuelve a la primera página
+                this.currentPage = 1;
                 this.filterAndRender();
             });
         }
 
-        // Cerrar modal con la tecla Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal();
@@ -136,79 +117,115 @@ class DigimonExplorer {
         });
     }
 
-    // Cargar datos de Digimon desde la API
-   async loadDigimon() {
-    this.showLoading(true);
-    try {
-        const response = await fetch(`https://digi-api.com/api/v1/digimon?pageSize=1000`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    async loadDigimon() {
+        this.showLoading(true);
+        try {
+            const response = await fetch(`https://digi-api.com/api/v1/digimon?pageSize=1000`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('Datos completos de la API:', data);
+            
+            this.allDigimon = await Promise.all(data.content.map(async (d) => {
+                let level = 'Unknown';
+                let imageUrl = '';
+
+                try {
+                    const detailResponse = await fetch(`https://digi-api.com/api/v1/digimon/${encodeURIComponent(d.name)}`);
+                    if (detailResponse.ok) {
+                        const detailData = await detailResponse.json();
+                        if (detailData.levels && detailData.levels.length > 0) {
+                            level = this.mapLevel(detailData.levels[0].level) || 'Unknown';
+                        }
+                        if (detailData.images && detailData.images.length > 0) {
+                            const validImage = detailData.images.find(img => img.href && img.href.trim() !== '');
+                            imageUrl = validImage ? validImage.href : '';
+                        }
+                    }
+                } catch (detailError) {
+                    console.error(`Error al cargar detalles de ${d.name}:`, detailError);
+                }
+
+                if (level === 'Unknown') {
+                    const knownLevels = {
+                        'Agumon': 'Child', 'Aegisdramon': 'Ultimate', 'AeroV-dramon': 'Adult',
+                        'Angemon': 'Adult', 'Gabumon': 'Child', 'Greymon': 'Adult',
+                        'Wargreymon': 'Ultimate', 'MetalGarurumon': 'Ultimate'
+                    };
+                    level = knownLevels[d.name] || level;
+                }
+
+                if (!imageUrl && d.href) {
+                    const idMatch = d.href.match(/\/digimon\/(\d+)$/);
+                    if (idMatch) {
+                        imageUrl = `https://digi-api.com/images/digimon/w/${idMatch[1]}.png`;
+                    }
+                }
+
+                return {
+                    id: d.id,
+                    name: d.name || 'Sin nombre',
+                    level: level,
+                    img: imageUrl,
+                    href: d.href
+                };
+            }));
+            
+            this.filteredDigimon = [...this.allDigimon];
+            console.log("Digimon cargados:", this.allDigimon.length);
+            console.log("Niveles únicos encontrados:", [...new Set(this.allDigimon.map(d => d.level))]);
+            this.showError(false);
+        } catch (error) {
+            console.error('Error loading Digimon:', error);
+            this.showError(true, 'Error al cargar los datos de Digimon. Por favor, intenta de nuevo más tarde.');
+            this.allDigimon = [];
+            this.filteredDigimon = [];
+        } finally {
+            this.showLoading(false);
         }
-        const data = await response.json();
-        console.log('Datos completos de la API:', data);
-        this.allDigimon = data.content.map(d => {
-            console.log('Datos de un Digimon (incluyendo levels):', d.levels);
-            let level = 'Unknown';
-            if (d.levels && Array.isArray(d.levels) && d.levels.length > 0) {
-                level = d.levels[0].level || 'Unknown'; // Usar nivel real si está disponible
-            } else {
-                // Simulación temporal solo si no hay niveles
-                const levels = ['Baby', 'In-Training', 'Rookie', 'Champion', 'Ultimate', 'Mega', 'Armor', 'Hybrid'];
-                level = levels[Math.floor(Math.random() * levels.length)];
-                console.log(`Simulación aplicada para ${d.name}: ${level}`);
-            }
-            return {
-                name: d.name || 'Sin nombre',
-                level: level,
-                img: d.images && d.images.length > 0 ? d.images[0].href : ''
-            };
-        });
-        this.filteredDigimon = [...this.allDigimon];
-        console.log("Niveles reales:", [...new Set(this.allDigimon.map(d => d.level))]);
-        this.showError(false);
-    } catch (error) {
-        console.error('Error loading Digimon:', error);
-        this.showError(true, 'Error al cargar los datos de Digimon. Por favor, intenta de nuevo más tarde.');
-        this.allDigimon = [];
-        this.filteredDigimon = [];
-    } finally {
-        this.showLoading(false);
     }
-}
 
-    // Llenar el filtro de niveles a partir de los datos de Digimon
+    mapLevel(apiLevel) {
+        const levelMap = {
+            'Baby': 'Baby I',
+            'In-Training': 'Baby II',
+            'Rookie': 'Child',
+            'Champion': 'Adult',
+            'Perfect': 'Perfect',
+            'Ultimate': 'Ultimate',
+            'Mega': 'Ultimate', // Mapeo adicional si la API usa "Mega"
+            'Armor': 'Armor',
+            'Hybrid': 'Hybrid'
+        };
+        return levelMap[apiLevel] || apiLevel;
+    }
+
     populateLevelFilterFromDigimon() {
-        // Crear un mapa de niveles normalizados a etiquetas "bonitas"
-        const mapLevels = this.allDigimon.reduce((acc, d) => {
-            if (!d.level) return acc;
-            const raw = String(d.level);
-            const norm = raw.trim().toLowerCase();
-            if (!acc.has(norm)) {
-                acc.set(norm, raw.trim());
-            }
-            return acc;
-        }, new Map());
-
-        // Ordenar los niveles por la etiqueta "bonita"
-        const nivelesNorm = Array.from(mapLevels.keys()).sort((a, b) => {
-            const ta = mapLevels.get(a).toLowerCase();
-            const tb = mapLevels.get(b).toLowerCase();
-            return ta.localeCompare(tb);
-        });
+        const uniqueLevels = [...new Set(this.allDigimon.map(d => d.level))]
+            .filter(level => level && level !== 'Unknown')
+            .sort();
 
         const select = document.getElementById('levelFilter');
         if (!select) return;
+        
         select.innerHTML = '<option value="">Todos los niveles</option>';
-        nivelesNorm.forEach(norm => {
-            const label = mapLevels.get(norm);
+        
+        ['Baby I', 'Baby II', 'Child', 'Adult', 'Perfect', 'Ultimate', 'Armor', 'Hybrid'].forEach(level => {
             const option = document.createElement('option');
-            option.value = norm; // Valor normalizado
-            option.textContent = label; // Etiqueta "bonita"
+            option.value = level;
+            option.textContent = level;
             select.appendChild(option);
         });
+
+        if (this.allDigimon.some(d => d.level === 'Unknown')) {
+            const option = document.createElement('option');
+            option.value = 'Unknown';
+            option.textContent = 'Desconocido';
+            select.appendChild(option);
+        }
     }
 
-    // Aplicar filtros y renderizar
     async filterAndRender() {
         await this.applyFilters();
         this.renderDigimon();
@@ -216,38 +233,28 @@ class DigimonExplorer {
         this.updateStats();
     }
 
-    // Aplicar filtros localmente sobre allDigimon
     async applyFilters() {
         this.showLoading(true);
         try {
-            const cs = this.currentSearch.trim().toLowerCase();
-            const cl = this.currentLevel; // Valor normalizado
+            const searchTerm = this.currentSearch.trim().toLowerCase();
+            const selectedLevel = this.currentLevel;
 
-            // Filtrar Digimon basado en búsqueda y nivel
-            const todosFiltrados = this.allDigimon.filter(d => {
-                const nameMatch = !cs || d.name.toLowerCase().includes(cs);
-                let levelNorm = '';
-                if (d.level) {
-                    levelNorm = String(d.level).trim().toLowerCase();
-                }
-                const levelMatch = !cl || levelNorm === cl;
+            const filteredResults = this.allDigimon.filter(d => {
+                const nameMatch = !searchTerm || d.name.toLowerCase().includes(searchTerm);
+                const levelMatch = !selectedLevel || d.level === selectedLevel;
                 return nameMatch && levelMatch;
             });
 
-            // Calcular total de páginas
-            const total = todosFiltrados.length;
-            this.totalPages = Math.ceil(total / this.itemsPerPage) || 1;
+            this.totalPages = Math.ceil(filteredResults.length / this.itemsPerPage) || 1;
 
-            // Ordenar los Digimon filtrados
             if (this.currentSort === 'asc') {
-                todosFiltrados.sort((a, b) => a.name.localeCompare(b.name));
+                filteredResults.sort((a, b) => a.name.localeCompare(b.name));
             } else if (this.currentSort === 'desc') {
-                todosFiltrados.sort((a, b) => b.name.localeCompare(a.name));
+                filteredResults.sort((a, b) => b.name.localeCompare(a.name));
             }
 
-            // Obtener la página actual
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            this.filteredDigimon = todosFiltrados.slice(start, start + this.itemsPerPage);
+            this.filteredDigimon = filteredResults.slice(start, start + this.itemsPerPage);
 
             this.showError(false);
         } catch (error) {
@@ -260,7 +267,6 @@ class DigimonExplorer {
         }
     }
 
-    // Cambiar el orden de los Digimon
     toggleSort() {
         const btn = document.getElementById('sortBtn');
         if (!btn) return;
@@ -279,7 +285,6 @@ class DigimonExplorer {
         this.filterAndRender();
     }
 
-    // Renderizar la lista de Digimon en el grid
     renderDigimon() {
         const grid = document.getElementById('digimonGrid');
         const noResults = document.getElementById('noResults');
@@ -294,9 +299,15 @@ class DigimonExplorer {
             if (noResults) noResults.style.display = 'none';
         }
 
+        const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDMwMCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjUwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyNSIgcj0iNDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjMiLz4KPHN2ZyB4PSIxMzAiIHk9IjEwNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IndoaXRlIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJ6Ii8+Cjwvc3ZnPgo8dGV4dCB4PSIxNTAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTRweCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiPkRpZ2ltb248L3RleHQ+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXIiIHgxPSIwIiB5MT0iMCIgeDI9IjMwMCIgeTI9IjI1MCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNjY3ZWVhIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzc2NGJhMiIvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPg==';
+
         grid.innerHTML = this.filteredDigimon.map(digimon => `
             <div class="card" onclick="digimonExplorer.showDigimonDetails('${this.escapeHtml(digimon.name)}')">
-                <img class="card-image" src="${digimon.img || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDMwMCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjUwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxwYXRoIGQ9Ik0xNTAgMTI1bTAgMzBhMzAgMzAgMCAxIDAgMC02MCAzMCAzMCAwIDEgMCAwIDYweiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNSIvPgo8dGV4dCB4PSIxNTAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEycHgiIGZpbGw9IndoaXRlIj5EaWdpbW9uPC90ZXh0Pgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyIiB4MT0iMCIgeTE9IjAiIHgyPSIzMDAiIHkyPSIyNTAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NjRiYTIiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K'}" alt="${this.escapeHtml(digimon.name)}">
+                <img class="card-image" 
+                     src="${digimon.img || placeholderImage}" 
+                     alt="${this.escapeHtml(digimon.name)}"
+                     onerror="this.src='${placeholderImage}'"
+                     style="width: 100%; height: auto; object-fit: cover;">
                 <div class="card-content">
                     <h3 class="card-title">${this.escapeHtml(digimon.name)}</h3>
                     <div class="card-level">${this.escapeHtml(digimon.level)}</div>
@@ -305,16 +316,15 @@ class DigimonExplorer {
         `).join('');
     }
 
-    // Escapar HTML para prevenir XSS
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text || '';
         return div.innerHTML;
     }
 
-    // Mostrar detalles de un Digimon en un modal
     async showDigimonDetails(name) {
         try {
+            this.showLoading(true);
             const response = await fetch(`https://digi-api.com/api/v1/digimon/${encodeURIComponent(name)}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -326,17 +336,41 @@ class DigimonExplorer {
             
             if (!modalContent || !modal) return;
 
+            let bestImage = '';
+            if (digimon.images && digimon.images.length > 0) {
+                const validImage = digimon.images.find(img => img.href && img.href.trim() !== '');
+                bestImage = validImage ? validImage.href : '';
+            }
+
+            let realLevel = 'Unknown';
+            if (digimon.levels && digimon.levels.length > 0) {
+                realLevel = this.mapLevel(digimon.levels[0].level) || 'Unknown';
+            }
+
+            const fields = digimon.fields || [];
+            const types = digimon.types || [];
+            const attributes = digimon.attributes || [];
+
+            const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iNDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjMiLz4KPHN2ZyB4PSI4MCIgeT0iODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyTDEzLjA5IDguMjZMMjAgOUwxMy4wOSAxNS43NEwxMiAyMkwxMC45MSAxNS43NEw0IDlMMTAuOTEgOC4yNkwxMiAyeiIvPgo8L3N2Zz4KPHRleHQgeD0iMTAwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMnB4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOCI+RGlnaW1vbjwvdGV4dD4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBiZD0icGFpbnQwX2xpbmVhciIgeDE9IjAiIHkxPSIwIiB4Mj0iMjAwIiB5Mj0iMjAwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiM2NjdlZWEiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzY0YmEyIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==';
+
             modalContent.innerHTML = `
                 <div style="text-align: center;">
-                    <img class="modal-image" src="${digimon.images && digimon.images.length > 0 ? digimon.images[0].href : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iMzAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjUiLz4KPHRleHQgeD0iMTAwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMnB4IiBmaWxsPSJ3aGl0ZSI+RGlnaW1vbjwvdGV4dD4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhciIgeDE9IjAiIHkxPSIwIiB4Mj0iMjAwIiB5Mj0iMjAwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiM2NjdlZWEiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzY4YmEyIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg=='}" alt="${this.escapeHtml(digimon.name)}">
+                    <img class="modal-image" 
+                         src="${bestImage || placeholderImage}" 
+                         alt="${this.escapeHtml(digimon.name)}"
+                         onerror="this.src='${placeholderImage}'"
+                         style="max-width: 200px; max-height: 200px; border-radius: 10px; margin-bottom: 1rem;">
                     <h2 style="margin: 1rem 0; font-size: 2rem; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${this.escapeHtml(digimon.name)}</h2>
                     <div style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 0.8rem 1.5rem; border-radius: 25px; display: inline-block; font-weight: bold; font-size: 1.1rem; margin-bottom: 1.5rem;">
-                        ${this.escapeHtml(digimon.levels && digimon.levels.length > 0 ? digimon.levels[0].level : 'Unknown')}
+                        ${this.escapeHtml(realLevel)}
                     </div>
-                    <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 15px; margin: 1rem 0;">
-                        <p style="font-size: 1rem; line-height: 1.6; color: #333;">
-                            <strong>Nivel:</strong> ${this.escapeHtml(digimon.levels && digimon.levels.length > 0 ? digimon.levels[0].level : 'Unknown')}<br>
+                    <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 15px; margin: 1rem 0; text-align: left;">
+                        <p style="font-size: 1rem; line-height: 1.6; color: #333; margin: 0;">
+                            <strong>Nivel:</strong> ${this.escapeHtml(realLevel)}<br>
                             <strong>Nombre:</strong> ${this.escapeHtml(digimon.name)}
+                            ${types.length > 0 ? `<br><strong>Tipo:</strong> ${types.map(t => t.type).join(', ')}` : ''}
+                            ${attributes.length > 0 ? `<br><strong>Atributo:</strong> ${attributes.map(a => a.attribute).join(', ')}` : ''}
+                            ${fields.length > 0 ? `<br><strong>Campo:</strong> ${fields.map(f => f.field).join(', ')}` : ''}
                         </p>
                     </div>
                     <button onclick="digimonExplorer.toggleFavorite('${this.escapeHtml(digimon.name)}')" 
@@ -350,10 +384,11 @@ class DigimonExplorer {
         } catch (error) {
             console.error('Error loading Digimon details:', error);
             this.showError(true, 'Error al cargar los detalles del Digimon.');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    // Alternar favorito
     toggleFavorite(name) {
         const index = this.stats.favorites.indexOf(name);
         if (index === -1) {
@@ -362,11 +397,10 @@ class DigimonExplorer {
             this.stats.favorites.splice(index, 1);
         }
         this.saveFavorites();
-        this.showDigimonDetails(name); // Refrescar modal
+        this.showDigimonDetails(name);
         this.updateStats();
     }
 
-    // Cerrar el modal
     closeModal() {
         const modal = document.getElementById('modal');
         if (modal) {
@@ -375,7 +409,6 @@ class DigimonExplorer {
         }
     }
 
-    // Mostrar un Digimon aleatorio
     showRandomDigimon() {
         if (this.allDigimon.length === 0) return;
         const randomIndex = Math.floor(Math.random() * this.allDigimon.length);
@@ -383,28 +416,16 @@ class DigimonExplorer {
         this.showDigimonDetails(randomDigimon.name);
     }
 
-    // Actualizar estadísticas
     async updateStats() {
         try {
-            const response = await fetch('https://digi-api.com/api/v1/digimon?pageSize=1');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const totalData = await response.json();
-            this.stats.total = totalData.pageable.totalElements || 0;
-
-            const levelResponse = await fetch('https://digi-api.com/api/v1/level');
-            if (!levelResponse.ok) {
-                throw new Error(`HTTP error! status: ${levelResponse.status}`);
-            }
-            const levelData = await levelResponse.json();
-            console.log('Datos de niveles desde API:', levelData);
-            this.stats.levels = Array.isArray(levelData.content) ? levelData.content.reduce((acc, level) => {
-                if (level.name && level.count) {
-                    acc[level.name] = level.count;
-                }
-                return acc;
-            }, {}) : {};
+            this.stats.total = this.allDigimon.length;
+            
+            const levelCounts = {};
+            this.allDigimon.forEach(digimon => {
+                const level = digimon.level;
+                levelCounts[level] = (levelCounts[level] || 0) + 1;
+            });
+            this.stats.levels = levelCounts;
 
             const statsGrid = document.getElementById('statsGrid');
             if (statsGrid) {
@@ -423,7 +444,7 @@ class DigimonExplorer {
                     </div>
                     <div class="stat-item">
                         <span class="stat-number">${this.filteredDigimon.length}</span>
-                        Digimon Filtrados
+                        Resultados Actuales
                     </div>
                 `;
             }
@@ -432,7 +453,6 @@ class DigimonExplorer {
         }
     }
 
-    // Renderizar la paginación
     renderPagination() {
         const pagination = document.getElementById('pagination');
         if (!pagination) return;
@@ -480,7 +500,6 @@ class DigimonExplorer {
         pagination.innerHTML = paginationHTML;
     }
 
-    // Ir a una página específica
     async goToPage(page) {
         this.currentPage = page;
         await this.applyFilters();
@@ -489,7 +508,6 @@ class DigimonExplorer {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Mostrar u ocultar el loader
     showLoading(show) {
         const loading = document.getElementById('loading');
         const grid = document.getElementById('digimonGrid');
@@ -498,7 +516,6 @@ class DigimonExplorer {
         if (grid) grid.style.display = show ? 'none' : 'grid';
     }
 
-    // Mostrar u ocultar errores
     showError(show, message = '') {
         const errorDiv = document.getElementById('error');
         if (!errorDiv) return;
@@ -516,5 +533,6 @@ class DigimonExplorer {
     }
 }
 
-// Inicializar la aplicación
-const digimonExplorer = new DigimonExplorer();
+document.addEventListener('DOMContentLoaded', () => {
+    window.digimonExplorer = new DigimonExplorer();
+});
