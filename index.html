@@ -3,29 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCP Database</title>
+    <title>Digimon Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <link rel="stylesheet" href="./estilos/css/estilos.css">
+    <link rel="icon" href="./estilos/icons/logo.png" type="image/png">
 </head>
 <body>
-    <div class="fondo">
-        <img src="./estilos/icons/Logo.png" alt="SCP Logo">
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <i class="fas fa-dragon"></i> Digimon Explorer
+                </div>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar Digimon...">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats" id="stats">
+            <h2>Estadísticas del Mundo Digimon</h2>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated here -->
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label><strong>Filtrar por nivel:</strong></label>
+                <select class="filter-select" id="levelFilter">
+                    <option value="">Todos los niveles</option>
+                </select>
+                
+                <button class="page-btn" id="sortBtn">
+                    <i class="fas fa-sort-alpha-down"></i> Ordenar A-Z
+                </button>
+                
+                <button class="page-btn" id="randomBtn">
+                    <i class="fas fa-random"></i> Digimon Aleatorio
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            Cargando Digimon...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="noResults" class="no-results" style="display: none;">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <p>No se encontraron Digimon con esos criterios de búsqueda.</p>
+        </div>
+
+        <div class="grid" id="digimonGrid">
+            <!-- Digimon cards will be populated here -->
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be populated here -->
+        </div>
     </div>
-    <header class="encabezado">
-        <h1>SCP Database</h1>
-        <form class="busqueda" id="search-form">
-            <select id="categoria" name="tipo">
-                <option value="items">Items (SCPs)</option>
-                <option value="tales">Tales (Relatos)</option>
-            </select>
-            <input type="text" id="Buscar" placeholder="Buscar SCP o relato...">
-            <button type="submit">Buscar</button>
-        </form>
-    </header>
-    <main class="contenedor">
-        <section id="Resultados" class="resultados">
-            <!-- Los resultados se llenarán dinámicamente con JavaScript -->
-        </section>
-    </main>
-    <script src="./funcion/main.js"></script>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="modalContent">
+                <!-- Modal content will be populated here -->
+            </div>
+        </div>
+    </div>
+<script src="./funcion/main.js"></script>
 </body>
 </html>

@@ -1,678 +1,538 @@
-const CONFIG = {
-    API_BASE_URL: 'https://raw.githubusercontent.com/scp-data/scp-api/main/docs', 
-    ITEMS_PER_PAGE: 12,
-    SEARCH_DEBOUNCE_DELAY: 800,
-    MAX_RETRIES: 3,
-    RETRY_DELAY: 1000,
-    MAX_DESCRIPTION_LENGTH: 500
-};
-
-const AVAILABLE_SCPS = [
-    '002', '003', '004', '005', '006', '008', '009', '010', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020',
-    '021', '022', '023', '024', '025', '026', '027', '028', '029', '030', '031', '032', '033', '034', '035', '036', '037', '038',
-    '039', '040', '041', '042', '043', '044', '045', '046', '047', '048', '049', '050', '051', '052', '053', '054', '055', '056',
-    '057', '058', '059', '060', '061', '062', '063', '064', '065', '066', '067', '068', '069', '070', '071', '072', '073', '074',
-    '075', '076', '077', '078', '079', '080', '081', '082', '083', '084', '085', '086', '087', '088', '089', '090', '091', '092',
-    '093', '094', '095', '096', '097', '098', '099', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110',
-    '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '131', '134', '137', '140', '143', '146', '149', '152',
-    '155', '158', '161', '164', '167', '170', '173', '176', '179', '182', '185', '188', '191', '194', '197', '200', '250', '294',
-    '343', '426', '458', '500', '517', '529', '566', '610', '682', '689', '714', '738', '789', '826', '860', '914', '966', '999',
-    '1025', '1048', '1123', '1171', '1499', '1730', '1981', '2000', '2316', '2521', '2845', '3008', '3125', '3199', '3999', '4999'
-];
-
-const SCP_CLASSES = {
-    'Safe': { color: '#4CAF50', description: 'Fácil y seguro de contener' },
-    'Euclid': { color: '#FF9800', description: 'Comportamiento impredecible' },
-    'Keter': { color: '#F44336', description: 'Extremadamente peligroso' },
-    'Thaumiel': { color: '#9C27B0', description: 'Usado para contener otros SCPs' },
-    'Apollyon': { color: '#000000', description: 'Imposible de contener' },
-    'Neutralized': { color: '#607D8B', description: 'Ya no es anómalo' }
-};
-
-const AppState = {
-    currentPage: 1,
-    totalItems: 0,
-    currentFilter: 'all',
-    currentCategory: 'items',
-    searchTerm: '',
-    isLoading: false,
-    scpData: [],
-    favorites: JSON.parse(localStorage.getItem('scp-favorites') || '[]')
-};
-
-class SCPApiClient {
+class DigimonExplorer {
     constructor() {
-        this.baseURL = CONFIG.API_BASE_URL;
-        this.cache = new Map();
-    }
-
-    async getSCP(number) {
-        const scpId = this.formatSCPNumber(number);
-        const cacheKey = `scp-${scpId}`;
-        
-        if (this.cache.has(cacheKey)) {
-            return this.cache.get(cacheKey);
-        }
-
-        const url = `${this.baseURL}/scp-${scpId}.json`;
-        
-        try {
-            const response = await this.fetchWithRetry(url);
-            
-            if (!response.ok) {
-                throw new Error(`SCP-${scpId} no encontrado (${response.status})`);
-            }
-
-            const data = await response.json();
-            const processedData = this.processSCPData(data, scpId);
-            
-            this.cache.set(cacheKey, processedData);
-            return processedData;
-        } catch (error) {
-            console.warn(`Error fetching SCP-${scpId}:`, error.message);
-            return this.generateMockData(scpId);
-        }
-    }
-
-    async getMultipleSCPs(numbers) {
-        const promises = numbers.map(number => this.getSCP(number));
-        const results = await Promise.allSettled(promises);
-        
-        return results
-            .filter(result => result.status === 'fulfilled' && result.value)
-            .map(result => result.value);
-    }
-
-    async fetchWithRetry(url, retries = CONFIG.MAX_RETRIES) {
-        for (let i = 0; i <= retries; i++) {
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'default',
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                });
-                return response;
-            } catch (error) {
-                if (i === retries) throw error;
-                await this.delay(CONFIG.RETRY_DELAY * (i + 1));
-            }
-        }
-    }
-
-    formatSCPNumber(number) {
-        const cleanNumber = String(number).replace(/[^\d]/g, '');
-        return cleanNumber.length <= 3 ? cleanNumber.padStart(3, '0') : cleanNumber;
-    }
-
-    processSCPData(data, scpId) {
-        return {
-            id: `SCP-${scpId}`,
-            number: scpId,
-            title: data.title || 'Sin título',
-            description: data.description || this.generateDescription(scpId),
-            class: data.class || this.determineClass(scpId),
-            content: data.content || '',
-            url: `https://scp-wiki.wikidot.com/scp-${scpId}`,
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            author: data.author || 'Fundación SCP',
-            rating: data.rating || Math.floor(Math.random() * 1000) - 200,
-            containmentProcedures: data.containmentProcedures || this.generateContainment(scpId),
-            riskLevel: this.calculateRiskLevel(data.class || this.determineClass(scpId))
+        this.allDigimon = [];
+        this.filteredDigimon = [];
+        this.currentPage = 1;
+        this.itemsPerPage = 6;
+        this.currentSort = 'default';
+        this.currentLevel = '';
+        this.currentSearch = '';
+        this.totalPages = 1;
+        this.stats = {
+            total: 0,
+            levels: {},
+            favorites: this.loadFavorites()
         };
+        
+        this.init();
     }
 
-    generateMockData(scpId) {
-        const mockDescriptions = [
-            "Objeto anómalo con propiedades alteran la realidad circundante de manera impredecible.",
-            "Entidad biológica que exhibe características sobrenaturales y comportamiento hostil.",
-            "Artefacto tecnológico de origen desconocido con capacidades que desafían las leyes físicas.",
-            "Fenómeno espacial que distorsiona el tiempo y el espacio en un área determinada.",
-            "Criatura metamórfica capaz de adoptar múltiples formas y alterar su estructura molecular."
-        ];
-
-        const classes = Object.keys(SCP_CLASSES);
-        const randomClass = classes[Math.floor(Math.random() * classes.length)];
-
-        return {
-            id: `SCP-${scpId}`,
-            number: scpId,
-            title: `SCP-${scpId} - [DATOS CLASIFICADOS]`,
-            description: mockDescriptions[Math.floor(Math.random() * mockDescriptions.length)],
-            class: randomClass,
-            content: `Los datos completos de SCP-${scpId} están clasificados. Acceso restringido al personal de Nivel ${Math.floor(Math.random() * 5) + 1} o superior.`,
-            url: `https://scp-wiki.wikidot.com/scp-${scpId}`,
-            tags: ['clasificado', 'restringido', 'anómalo'],
-            author: 'Fundación SCP',
-            rating: Math.floor(Math.random() * 500) - 100,
-            containmentProcedures: `Procedimientos de contención para SCP-${scpId} están clasificados y disponibles solo para personal autorizado.`,
-            riskLevel: this.calculateRiskLevel(randomClass)
-        };
+    loadFavorites() {
+        if (!window.digimonFavorites) {
+            window.digimonFavorites = [];
+        }
+        return window.digimonFavorites;
     }
 
-    generateDescription(scpId) {
-        const templates = [
-            `SCP-${scpId} es un objeto anómalo que requiere protocolos especiales de contención.`,
-            `SCP-${scpId} exhibe propiedades que desafían el entendimiento científico actual.`,
-            `SCP-${scpId} fue recuperado en [DATOS EXPURGADOS] y clasificado como anómalo.`
-        ];
-        return templates[Math.floor(Math.random() * templates.length)];
+    saveFavorites() {
+        window.digimonFavorites = this.stats.favorites;
     }
 
-    determineClass(scpId) {
-        const num = parseInt(scpId);
-        if (num < 100) return 'Safe';
-        if (num < 500) return 'Euclid';
-        if (num < 1000) return 'Keter';
-        if (num > 3000) return 'Thaumiel';
-        return 'Euclid';
+    async init() {
+        this.bindEvents();
+        await this.loadDigimon();
+        this.populateLevelFilterFromDigimon();
+        this.updateStats();
+        this.renderDigimon();
+        this.renderPagination();
     }
 
-    generateContainment(scpId) {
-        return `SCP-${scpId} debe ser contenido en una celda de contención estándar con protocolos de seguridad apropiados para su clasificación.`;
-    }
+    bindEvents() {
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const levelFilter = document.getElementById('levelFilter');
+        const sortBtn = document.getElementById('sortBtn');
+        const randomBtn = document.getElementById('randomBtn');
+        const closeBtn = document.querySelector('.close');
+        const modal = document.getElementById('modal');
+        const itemsPerPageSelect = document.getElementById('itemsPerPageSelect');
 
-    calculateRiskLevel(scpClass) {
-        const riskLevels = {
-            'Safe': 2,
-            'Euclid': 5,
-            'Keter': 8,
-            'Thaumiel': 3,
-            'Apollyon': 10,
-            'Neutralized': 1
-        };
-        return riskLevels[scpClass] || 5;
-    }
-
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
-
-
-class DOMManager {
-    constructor() {
-        this.resultadosContainer = document.getElementById('Resultados');
-        this.buscarInput = document.getElementById('Buscar');
-        this.categoriaSelect = document.getElementById('categoria');
-        this.searchForm = document.getElementById('search-form');
-        this.debounceTimer = null;
-        this.setupEventListeners();
-    }
-
-    setupEventListeners() {
-        this.buscarInput.addEventListener('input', (e) => {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
-                AppState.searchTerm = e.target.value.trim();
-                AppState.currentPage = 1;
-                this.performSearch();
-            }, CONFIG.SEARCH_DEBOUNCE_DELAY);
-        });
-
-        this.categoriaSelect.addEventListener('change', (e) => {
-            AppState.currentCategory = e.target.value;
-            AppState.currentPage = 1;
-            this.performSearch();
-        });
-
-        this.buscarInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(this.debounceTimer);
-                AppState.searchTerm = e.target.value.trim();
-                AppState.currentPage = 1;
-                this.performSearch();
-            }
-        });
-
-        this.searchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            clearTimeout(this.debounceTimer);
-            AppState.searchTerm = this.buscarInput.value.trim();
-            AppState.currentPage = 1;
-            this.performSearch();
-        });
-    }
-
-    async performSearch() {
-        if (AppState.isLoading) return;
-
-        this.showLoading();
-        AppState.isLoading = true;
-
-        try {
-            let scpsToLoad = [];
-
-            if (AppState.searchTerm) {
-                const searchNumber = AppState.searchTerm.replace(/[^\d]/g, '');
-                if (searchNumber && AVAILABLE_SCPS.includes(searchNumber.padStart(3, '0'))) {
-                    scpsToLoad = [searchNumber.padStart(3, '0')];
-                } else {
-                    scpsToLoad = this.searchSCPsByText(AppState.searchTerm);
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.currentSearch = e.target.value.toLowerCase();
+                this.currentPage = 1;
+                this.filterAndRender();
+            });
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.currentPage = 1;
+                    this.filterAndRender();
                 }
-            } else {
-                scpsToLoad = this.getRandomSCPs(CONFIG.ITEMS_PER_PAGE);
-            }
-
-            const scpData = await apiClient.getMultipleSCPs(scpsToLoad);
-            AppState.scpData = scpData;
-            AppState.totalItems = scpData.length;
-
-            this.renderResults(scpData);
-            this.renderPagination();
-            this.renderFilters();
-
-        } catch (error) {
-            console.error('Error en la búsqueda:', error);
-            this.showError('Error al cargar los datos. Por favor, intenta nuevamente.');
-        } finally {
-            AppState.isLoading = false;
-            this.hideLoading();
-        }
-    }
-
-    showLoading() {
-        this.resultadosContainer.innerHTML = '<div class="loading">Cargando...</div>';
-    }
-
-    hideLoading() {
-        const loading = this.resultadosContainer.querySelector('.loading');
-        if (loading) loading.remove();
-    }
-
-    showError(message) {
-        this.resultadosContainer.innerHTML = `
-            <div class="error-message">
-                <h3>Error</h3>
-                <p>${message}</p>
-            </div>
-        `;
-    }
-
-    searchSCPsByText(searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const relevantSCPs = [];
-
-        const searchMap = {
-            'sculpture': ['173'],
-            'plague': ['049'],
-            'shy': ['096'],
-            'ticket': ['914'],
-            'hard': ['682'],
-            'god': ['343'],
-            'cake': ['871'],
-            'teddy': ['1048'],
-            'coffee': ['198'],
-            'stairs': ['087'],
-            'reptile': ['682'],
-            'doctor': ['049'],
-            'mask': ['035'],
-            'computer': ['079'],
-            'statue': ['173'],
-            'mirror': ['132'],
-            'door': ['914'],
-            'infinite': ['3008', '087'],
-            'ikea': ['3008']
-        };
-
-        for (const [keyword, scps] of Object.entries(searchMap)) {
-            if (term.includes(keyword)) {
-                relevantSCPs.push(...scps);
-            }
+            });
         }
 
-        if (relevantSCPs.length === 0) {
-            return this.getRandomSCPs(6);
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => {
+                this.currentPage = 1;
+                this.filterAndRender();
+            });
         }
 
-        return [...new Set(relevantSCPs)];
-    }
-
-    getRandomSCPs(count) {
-        const shuffled = [...AVAILABLE_SCPS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    }
-
-    renderResults(scps) {
-        if (!scps || scps.length === 0) {
-            this.resultadosContainer.innerHTML = `
-                <div class="no-results">
-                    <h3>No se encontraron resultados</h3>
-                    <p>Intenta con otros términos de búsqueda o navega por las categorías disponibles.</p>
-                </div>
-            `;
-            return;
+        if (levelFilter) {
+            levelFilter.addEventListener('change', (e) => {
+                this.currentLevel = e.target.value;
+                this.currentPage = 1;
+                this.filterAndRender();
+            });
         }
 
-        const filteredSCPs = this.applyFilters(scps);
-        const paginatedSCPs = this.paginateResults(filteredSCPs);
+        if (sortBtn) {
+            sortBtn.addEventListener('click', () => {
+                this.toggleSort();
+            });
+        }
 
-        const resultsHTML = `
-            <div class="results-header">
-                <h2>Resultados de búsqueda (${filteredSCPs.length} encontrados)</h2>
-                <div class="view-controls">
-                    <button onclick="domManager.toggleView('grid')" class="view-btn active" id="grid-btn">
-                        <span>⊞</span> Grid
-                    </button>
-                    <button onclick="domManager.toggleView('list')" class="view-btn" id="list-btn">
-                        <span>☰</span> Lista
-                    </button>
-                </div>
-            </div>
-            <div class="scp-grid" id="scp-container">
-                ${paginatedSCPs.map(scp => this.createSCPCard(scp)).join('')}
-            </div>
-        `;
+        if (randomBtn) {
+            randomBtn.addEventListener('click', () => {
+                this.showRandomDigimon();
+            });
+        }
 
-        this.resultadosContainer.innerHTML = resultsHTML;
-    }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.closeModal();
+            });
+        }
 
-    createSCPCard(scp) {
-        const classInfo = SCP_CLASSES[scp.class] || SCP_CLASSES['Euclid'];
-        const isFavorite = AppState.favorites.includes(scp.id);
-        const truncatedDesc = this.truncateText(scp.description, CONFIG.MAX_DESCRIPTION_LENGTH);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal();
+                }
+            });
+        }
 
-        return `
-            <div class="scp-card" data-class="${scp.class}" data-id="${scp.id}">
-                <div class="scp-header">
-                    <div class="scp-number">${scp.id}</div>
-                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
-                            onclick="domManager.toggleFavorite('${scp.id}')"
-                            title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
-                        ${isFavorite ? '★' : '☆'}
-                    </button>
-                </div>
-                <div class="scp-class" style="background-color: ${classInfo.color}">
-                    ${scp.class}
-                </div>
-                <h3 class="scp-title">${scp.title}</h3>
-                <div class="scp-description">
-                    ${truncatedDesc}
-                </div>
-                <div class="scp-stats">
-                    <div class="stat">
-                        <span class="stat-label">Rating:</span>
-                        <span class="stat-value ${scp.rating >= 0 ? 'positive' : 'negative'}">
-                            ${scp.rating >= 0 ? '+' : ''}${scp.rating}
-                        </span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Riesgo:</span>
-                        <span class="stat-value risk-level-${scp.riskLevel}">
-                            ${scp.riskLevel}/10
-                        </span>
-                    </div>
-                </div>
-                <div class="scp-tags">
-                    ${scp.tags.slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-                <div class="scp-actions">
-                    <button class="btn-primary" onclick="domManager.showSCPDetails('${scp.id}')">
-                        Ver Detalles
-                    </button>
-                    <button class="btn-secondary" onclick="window.open('${scp.url}', '_blank')">
-                        Wiki Oficial
-                    </button>
-                </div>
-            </div>
-        `;
-    }
+        if (itemsPerPageSelect) {
+            itemsPerPageSelect.addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.filterAndRender();
+            });
+        }
 
-    async showSCPDetails(scpId) {
-        const scp = AppState.scpData.find(s => s.id === scpId);
-        if (!scp) return;
-
-        const classInfo = SCP_CLASSES[scp.class] || SCP_CLASSES['Euclid'];
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content scp-details">
-                <div class="modal-header">
-                    <h2>${scp.id}: ${scp.title}</h2>
-                    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="scp-info-grid">
-                        <div class="info-section">
-                            <h3>Clasificación</h3>
-                            <div class="classification-badge" style="background-color: ${classInfo.color}">
-                                ${scp.class}
-                            </div>
-                            <p class="class-description">${classInfo.description}</p>
-                        </div>
-                        <div class="info-section">
-                            <h3>Estadísticas</h3>
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <span class="stat-label">Rating:</span>
-                                    <span class="stat-value ${scp.rating >= 0 ? 'positive' : 'negative'}">
-                                        ${scp.rating >= 0 ? '+' : ''}${scp.rating}
-                                    </span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Nivel de Riesgo:</span>
-                                    <span class="stat-value risk-level-${scp.riskLevel}">
-                                        ${scp.riskLevel}/10
-                                    </span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Autor:</span>
-                                    <span class="stat-value">${scp.author}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="info-section">
-                        <h3>Descripción</h3>
-                        <p class="scp-full-description">${scp.description}</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>Procedimientos de Contención</h3>
-                        <p class="containment-procedures">${scp.containmentProcedures}</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>Etiquetas</h3>
-                        <div class="tags-container">
-                            ${scp.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-primary" onclick="domManager.toggleFavorite('${scp.id}')">
-                        ${AppState.favorites.includes(scp.id) ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
-                    </button>
-                    <button class="btn-secondary" onclick="window.open('${scp.url}', '_blank')">
-                        Ver en Wiki Oficial
-                    </button>
-                    <button class="btn-tertiary" onclick="this.closest('.modal-overlay').remove()">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        
-        const handleEscape = (e) => {
+        document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                modal.remove();
-                document.removeEventListener('keydown', handleEscape);
-            }
-        };
-        document.addEventListener('keydown', handleEscape);
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-                document.removeEventListener('keydown', handleEscape);
+                this.closeModal();
             }
         });
     }
 
-    toggleFavorite(scpId) {
-        const index = AppState.favorites.indexOf(scpId);
-        if (index > -1) {
-            AppState.favorites.splice(index, 1);
+    async loadDigimon() {
+        this.showLoading(true);
+        try {
+            const response = await fetch(`https://digi-api.com/api/v1/digimon?pageSize=1000`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('Datos completos de la API:', data);
+            
+            this.allDigimon = await Promise.all(data.content.map(async (d) => {
+                let level = 'Unknown';
+                let imageUrl = '';
+
+                try {
+                    const detailResponse = await fetch(`https://digi-api.com/api/v1/digimon/${encodeURIComponent(d.name)}`);
+                    if (detailResponse.ok) {
+                        const detailData = await detailResponse.json();
+                        if (detailData.levels && detailData.levels.length > 0) {
+                            level = this.mapLevel(detailData.levels[0].level) || 'Unknown';
+                        }
+                        if (detailData.images && detailData.images.length > 0) {
+                            const validImage = detailData.images.find(img => img.href && img.href.trim() !== '');
+                            imageUrl = validImage ? validImage.href : '';
+                        }
+                    }
+                } catch (detailError) {
+                    console.error(`Error al cargar detalles de ${d.name}:`, detailError);
+                }
+
+                if (level === 'Unknown') {
+                    const knownLevels = {
+                        'Agumon': 'Child', 'Aegisdramon': 'Ultimate', 'AeroV-dramon': 'Adult',
+                        'Angemon': 'Adult', 'Gabumon': 'Child', 'Greymon': 'Adult',
+                        'Wargreymon': 'Ultimate', 'MetalGarurumon': 'Ultimate'
+                    };
+                    level = knownLevels[d.name] || level;
+                }
+
+                if (!imageUrl && d.href) {
+                    const idMatch = d.href.match(/\/digimon\/(\d+)$/);
+                    if (idMatch) {
+                        imageUrl = `https://digi-api.com/images/digimon/w/${idMatch[1]}.png`;
+                    }
+                }
+
+                return {
+                    id: d.id,
+                    name: d.name || 'Sin nombre',
+                    level: level,
+                    img: imageUrl,
+                    href: d.href
+                };
+            }));
+            
+            this.filteredDigimon = [...this.allDigimon];
+            console.log("Digimon cargados:", this.allDigimon.length);
+            console.log("Niveles únicos encontrados:", [...new Set(this.allDigimon.map(d => d.level))]);
+            this.showError(false);
+        } catch (error) {
+            console.error('Error loading Digimon:', error);
+            this.showError(true, 'Error al cargar los datos de Digimon. Por favor, intenta de nuevo más tarde.');
+            this.allDigimon = [];
+            this.filteredDigimon = [];
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    mapLevel(apiLevel) {
+        const levelMap = {
+            'Baby': 'Baby I',
+            'In-Training': 'Baby II',
+            'Rookie': 'Child',
+            'Champion': 'Adult',
+            'Perfect': 'Perfect',
+            'Ultimate': 'Ultimate',
+            'Mega': 'Ultimate', // Mapeo adicional si la API usa "Mega"
+            'Armor': 'Armor',
+            'Hybrid': 'Hybrid'
+        };
+        return levelMap[apiLevel] || apiLevel;
+    }
+
+    populateLevelFilterFromDigimon() {
+        const uniqueLevels = [...new Set(this.allDigimon.map(d => d.level))]
+            .filter(level => level && level !== 'Unknown')
+            .sort();
+
+        const select = document.getElementById('levelFilter');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Todos los niveles</option>';
+        
+        ['Baby I', 'Baby II', 'Child', 'Adult', 'Perfect', 'Ultimate', 'Armor', 'Hybrid'].forEach(level => {
+            const option = document.createElement('option');
+            option.value = level;
+            option.textContent = level;
+            select.appendChild(option);
+        });
+
+        if (this.allDigimon.some(d => d.level === 'Unknown')) {
+            const option = document.createElement('option');
+            option.value = 'Unknown';
+            option.textContent = 'Desconocido';
+            select.appendChild(option);
+        }
+    }
+
+    async filterAndRender() {
+        await this.applyFilters();
+        this.renderDigimon();
+        this.renderPagination();
+        this.updateStats();
+    }
+
+    async applyFilters() {
+        this.showLoading(true);
+        try {
+            const searchTerm = this.currentSearch.trim().toLowerCase();
+            const selectedLevel = this.currentLevel;
+
+            const filteredResults = this.allDigimon.filter(d => {
+                const nameMatch = !searchTerm || d.name.toLowerCase().includes(searchTerm);
+                const levelMatch = !selectedLevel || d.level === selectedLevel;
+                return nameMatch && levelMatch;
+            });
+
+            this.totalPages = Math.ceil(filteredResults.length / this.itemsPerPage) || 1;
+
+            if (this.currentSort === 'asc') {
+                filteredResults.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (this.currentSort === 'desc') {
+                filteredResults.sort((a, b) => b.name.localeCompare(a.name));
+            }
+
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            this.filteredDigimon = filteredResults.slice(start, start + this.itemsPerPage);
+
+            this.showError(false);
+        } catch (error) {
+            console.error('Error filtering Digimon:', error);
+            this.showError(true, 'Error al filtrar Digimon. Por favor, intenta de nuevo.');
+            this.filteredDigimon = [];
+            this.totalPages = 1;
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    toggleSort() {
+        const btn = document.getElementById('sortBtn');
+        if (!btn) return;
+
+        if (this.currentSort === 'default') {
+            this.currentSort = 'asc';
+            btn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> A-Z';
+        } else if (this.currentSort === 'asc') {
+            this.currentSort = 'desc';
+            btn.innerHTML = '<i class="fas fa-sort-alpha-up"></i> Z-A';
         } else {
-            AppState.favorites.push(scpId);
+            this.currentSort = 'default';
+            btn.innerHTML = '<i class="fas fa-sort"></i> Por defecto';
         }
         
-        localStorage.setItem('scp-favorites', JSON.stringify(AppState.favorites));
-        this.updateFavoriteButtons();
+        this.filterAndRender();
     }
 
-    updateFavoriteButtons() {
-        const favoriteButtons = document.querySelectorAll('.favorite-btn');
-        favoriteButtons.forEach(btn => {
-            const card = btn.closest('.scp-card');
-            const scpId = card.dataset.id;
-            const isFavorite = AppState.favorites.includes(scpId);
-            
-            btn.textContent = isFavorite ? '★' : '☆';
-            btn.className = `favorite-btn ${isFavorite ? 'active' : ''}`;
-            btn.title = isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos';
-        });
-    }
+    renderDigimon() {
+        const grid = document.getElementById('digimonGrid');
+        const noResults = document.getElementById('noResults');
+        
+        if (!grid) return;
 
-    renderFilters() {
-        const filtersHTML = `
-            <div class="filters-section">
-                <div class="filter-group">
-                    <label>Filtrar por clase:</label>
-                    <select id="classFilter" onchange="domManager.applyClassFilter(this.value)">
-                        <option value="all">Todas las clases</option>
-                        ${Object.keys(SCP_CLASSES).map(cls => 
-                            `<option value="${cls}" ${AppState.currentFilter === cls ? 'selected' : ''}>${cls}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <button class="filter-btn ${AppState.currentFilter === 'favorites' ? 'active' : ''}" 
-                            onclick="domManager.showFavorites()">
-                        ★ Mis Favoritos (${AppState.favorites.length})
-                    </button>
-                </div>
-                <div class="filter-group">
-                    <button class="filter-btn" onclick="domManager.showRandomSCPs()">
-                        🎲 SCPs Aleatorios
-                    </button>
+        if (this.filteredDigimon.length === 0) {
+            grid.innerHTML = '';
+            if (noResults) noResults.style.display = 'block';
+            return;
+        } else {
+            if (noResults) noResults.style.display = 'none';
+        }
+
+        const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDMwMCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjUwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyNSIgcj0iNDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjMiLz4KPHN2ZyB4PSIxMzAiIHk9IjEwNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IndoaXRlIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJ6Ii8+Cjwvc3ZnPgo8dGV4dCB4PSIxNTAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTRweCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiPkRpZ2ltb248L3RleHQ+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXIiIHgxPSIwIiB5MT0iMCIgeDI9IjMwMCIgeTI9IjI1MCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNjY3ZWVhIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzc2NGJhMiIvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPg==';
+
+        grid.innerHTML = this.filteredDigimon.map(digimon => `
+            <div class="card" onclick="digimonExplorer.showDigimonDetails('${this.escapeHtml(digimon.name)}')">
+                <img class="card-image" 
+                     src="${digimon.img || placeholderImage}" 
+                     alt="${this.escapeHtml(digimon.name)}"
+                     onerror="this.src='${placeholderImage}'"
+                     style="width: 100%; height: auto; object-fit: cover;">
+                <div class="card-content">
+                    <h3 class="card-title">${this.escapeHtml(digimon.name)}</h3>
+                    <div class="card-level">${this.escapeHtml(digimon.level)}</div>
                 </div>
             </div>
-        `;
-
-        if (!document.querySelector('.filters-section')) {
-            this.resultadosContainer.insertAdjacentHTML('afterbegin', filtersHTML);
-        }
+        `).join('');
     }
 
-    applyClassFilter(className) {
-        AppState.currentFilter = className;
-        AppState.currentPage = 1;
-        this.renderResults(AppState.scpData);
-        this.renderPagination();
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 
-    async showFavorites() {
-        if (AppState.favorites.length === 0) {
-            this.resultadosContainer.innerHTML = `
-                <div class="no-results">
-                    <h3>No tienes favoritos guardados</h3>
-                    <p>Agrega SCPs a tus favoritos clickeando en la estrella ☆</p>
+    async showDigimonDetails(name) {
+        try {
+            this.showLoading(true);
+            const response = await fetch(`https://digi-api.com/api/v1/digimon/${encodeURIComponent(name)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const digimon = await response.json();
+            const isFavorite = this.stats.favorites.includes(digimon.name);
+            const modalContent = document.getElementById('modalContent');
+            const modal = document.getElementById('modal');
+            
+            if (!modalContent || !modal) return;
+
+            let bestImage = '';
+            if (digimon.images && digimon.images.length > 0) {
+                const validImage = digimon.images.find(img => img.href && img.href.trim() !== '');
+                bestImage = validImage ? validImage.href : '';
+            }
+
+            let realLevel = 'Unknown';
+            if (digimon.levels && digimon.levels.length > 0) {
+                realLevel = this.mapLevel(digimon.levels[0].level) || 'Unknown';
+            }
+
+            const fields = digimon.fields || [];
+            const types = digimon.types || [];
+            const attributes = digimon.attributes || [];
+
+            const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXIpIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iNDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjMiLz4KPHN2ZyB4PSI4MCIgeT0iODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyTDEzLjA5IDguMjZMMjAgOUwxMy4wOSAxNS43NEwxMiAyMkwxMC45MSAxNS43NEw0IDlMMTAuOTEgOC4yNkwxMiAyeiIvPgo8L3N2Zz4KPHRleHQgeD0iMTAwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMnB4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOCI+RGlnaW1vbjwvdGV4dD4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBiZD0icGFpbnQwX2xpbmVhciIgeDE9IjAiIHkxPSIwIiB4Mj0iMjAwIiB5Mj0iMjAwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiM2NjdlZWEiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzY0YmEyIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==';
+
+            modalContent.innerHTML = `
+                <div style="text-align: center;">
+                    <img class="modal-image" 
+                         src="${bestImage || placeholderImage}" 
+                         alt="${this.escapeHtml(digimon.name)}"
+                         onerror="this.src='${placeholderImage}'"
+                         style="max-width: 200px; max-height: 200px; border-radius: 10px; margin-bottom: 1rem;">
+                    <h2 style="margin: 1rem 0; font-size: 2rem; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${this.escapeHtml(digimon.name)}</h2>
+                    <div style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 0.8rem 1.5rem; border-radius: 25px; display: inline-block; font-weight: bold; font-size: 1.1rem; margin-bottom: 1.5rem;">
+                        ${this.escapeHtml(realLevel)}
+                    </div>
+                    <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 15px; margin: 1rem 0; text-align: left;">
+                        <p style="font-size: 1rem; line-height: 1.6; color: #333; margin: 0;">
+                            <strong>Nivel:</strong> ${this.escapeHtml(realLevel)}<br>
+                            <strong>Nombre:</strong> ${this.escapeHtml(digimon.name)}
+                            ${types.length > 0 ? `<br><strong>Tipo:</strong> ${types.map(t => t.type).join(', ')}` : ''}
+                            ${attributes.length > 0 ? `<br><strong>Atributo:</strong> ${attributes.map(a => a.attribute).join(', ')}` : ''}
+                            ${fields.length > 0 ? `<br><strong>Campo:</strong> ${fields.map(f => f.field).join(', ')}` : ''}
+                        </p>
+                    </div>
+                    <button onclick="digimonExplorer.toggleFavorite('${this.escapeHtml(digimon.name)}')" 
+                            style="background: ${isFavorite ? '#ff4444' : 'rgba(255, 196, 0, 0.2)'}; color: ${isFavorite ? 'white' : '#ffc400'}; border: 1px solid ${isFavorite ? '#ff4444' : '#ffc400'}; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; margin-top: 1rem;">
+                        <i class="fas ${isFavorite ? 'fa-heart-broken' : 'fa-heart'}"></i> ${isFavorite ? 'Quitar de Favoritos' : 'Añadir a Favoritos'}
+                    </button>
                 </div>
             `;
-            return;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        } catch (error) {
+            console.error('Error loading Digimon details:', error);
+            this.showError(true, 'Error al cargar los detalles del Digimon.');
+        } finally {
+            this.showLoading(false);
         }
-
-        this.showLoading();
-        AppState.currentFilter = 'favorites';
-        const scpData = await apiClient.getMultipleSCPs(AppState.favorites);
-        AppState.scpData = scpData;
-        AppState.totalItems = scpData.length;
-        this.renderResults(scpData);
-        this.renderPagination();
-        this.hideLoading();
     }
 
-    showRandomSCPs() {
-        AppState.currentFilter = 'all';
-        AppState.currentPage = 1;
-        this.performSearch();
-    }
-
-    applyFilters(scps) {
-        if (AppState.currentFilter === 'all') return scps;
-        if (AppState.currentFilter === 'favorites') {
-            return scps.filter(scp => AppState.favorites.includes(scp.id));
+    toggleFavorite(name) {
+        const index = this.stats.favorites.indexOf(name);
+        if (index === -1) {
+            this.stats.favorites.push(name);
+        } else {
+            this.stats.favorites.splice(index, 1);
         }
-        return scps.filter(scp => scp.class === AppState.currentFilter);
+        this.saveFavorites();
+        this.showDigimonDetails(name);
+        this.updateStats();
     }
 
-    paginateResults(scps) {
-        const start = (AppState.currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
-        const end = start + CONFIG.ITEMS_PER_PAGE;
-        return scps.slice(start, end);
+    closeModal() {
+        const modal = document.getElementById('modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    showRandomDigimon() {
+        if (this.allDigimon.length === 0) return;
+        const randomIndex = Math.floor(Math.random() * this.allDigimon.length);
+        const randomDigimon = this.allDigimon[randomIndex];
+        this.showDigimonDetails(randomDigimon.name);
+    }
+
+    async updateStats() {
+        try {
+            this.stats.total = this.allDigimon.length;
+            
+            const levelCounts = {};
+            this.allDigimon.forEach(digimon => {
+                const level = digimon.level;
+                levelCounts[level] = (levelCounts[level] || 0) + 1;
+            });
+            this.stats.levels = levelCounts;
+
+            const statsGrid = document.getElementById('statsGrid');
+            if (statsGrid) {
+                statsGrid.innerHTML = `
+                    <div class="stat-item">
+                        <span class="stat-number">${this.stats.total}</span>
+                        Total Digimon
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${Object.keys(this.stats.levels).length}</span>
+                        Niveles Únicos
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${this.stats.favorites.length}</span>
+                        Favoritos
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${this.filteredDigimon.length}</span>
+                        Resultados Actuales
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error updating stats:', error);
+        }
     }
 
     renderPagination() {
-        const totalPages = Math.ceil(AppState.totalItems / CONFIG.ITEMS_PER_PAGE);
-        if (totalPages <= 1) return;
+        const pagination = document.getElementById('pagination');
+        if (!pagination) return;
 
-        const paginationHTML = `
-            <div class="pagination">
-                <button onclick="domManager.changePage(${AppState.currentPage - 1})" 
-                        ${AppState.currentPage === 1 ? 'disabled' : ''}>
-                    Anterior
-                </button>
-                <span>Página ${AppState.currentPage} de ${totalPages}</span>
-                <button onclick="domManager.changePage(${AppState.currentPage + 1})" 
-                        ${AppState.currentPage === totalPages ? 'disabled' : ''}>
-                    Siguiente
-                </button>
-            </div>
-        `;
-
-        const existingPagination = this.resultadosContainer.querySelector('.pagination');
-        if (existingPagination) {
-            existingPagination.outerHTML = paginationHTML;
-        } else {
-            this.resultadosContainer.insertAdjacentHTML('beforeend', paginationHTML);
+        if (this.totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
         }
+
+        let paginationHTML = '';
+        if (this.currentPage > 1) {
+            paginationHTML += `<button class="page-btn" onclick="digimonExplorer.goToPage(${this.currentPage - 1})" aria-label="Página anterior">
+                <i class="fas fa-chevron-left"></i>
+            </button>`;
+        }
+
+        const startPage = Math.max(1, this.currentPage - 2);
+        const endPage = Math.min(this.totalPages, this.currentPage + 2);
+
+        if (startPage > 1) {
+            paginationHTML += `<button class="page-btn" onclick="digimonExplorer.goToPage(1)" aria-label="Página 1">1</button>`;
+            if (startPage > 2) {
+                paginationHTML += `<span class="page-btn" style="cursor: default;">...</span>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" 
+                onclick="digimonExplorer.goToPage(${i})" aria-label="Página ${i}">${i}</button>`;
+        }
+
+        if (endPage < this.totalPages) {
+            if (endPage < this.totalPages - 1) {
+                paginationHTML += `<span class="page-btn" style="cursor: default;">...</span>`;
+            }
+            paginationHTML += `<button class="page-btn" onclick="digimonExplorer.goToPage(${this.totalPages})" aria-label="Página ${this.totalPages}">${this.totalPages}</button>`;
+        }
+
+        if (this.currentPage < this.totalPages) {
+            paginationHTML += `<button class="page-btn" onclick="digimonExplorer.goToPage(${this.currentPage + 1})" aria-label="Página siguiente">
+                <i class="fas fa-chevron-right"></i>
+            </button>`;
+        }
+
+        pagination.innerHTML = paginationHTML;
     }
 
-    changePage(page) {
-        if (page < 1 || page > Math.ceil(AppState.totalItems / CONFIG.ITEMS_PER_PAGE)) return;
-        AppState.currentPage = page;
-        this.renderResults(AppState.scpData);
+    async goToPage(page) {
+        this.currentPage = page;
+        await this.applyFilters();
+        this.renderDigimon();
         this.renderPagination();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    toggleView(view) {
-        const gridBtn = document.getElementById('grid-btn');
-        const listBtn = document.getElementById('list-btn');
-        const container = document.getElementById('scp-container');
+    showLoading(show) {
+        const loading = document.getElementById('loading');
+        const grid = document.getElementById('digimonGrid');
+        
+        if (loading) loading.style.display = show ? 'flex' : 'none';
+        if (grid) grid.style.display = show ? 'none' : 'grid';
+    }
 
-        if (view === 'grid') {
-            container.classList.remove('list-view');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-        } else {
-            container.classList.add('list-view');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
+    showError(show, message = '') {
+        const errorDiv = document.getElementById('error');
+        if (!errorDiv) return;
+
+        errorDiv.style.display = show ? 'block' : 'none';
+        if (show) {
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>${message}</p>
+                <button class="page-btn" onclick="digimonExplorer.loadDigimon()" style="margin-top: 1rem;">
+                    Reintentar
+                </button>
+            `;
         }
-    }
-
-    truncateText(text, maxLength) {
-        if (text.length <= maxLength) return text;
-        return text.slice(0, maxLength) + '...';
     }
 }
 
-const apiClient = new SCPApiClient();
-const domManager = new DOMManager();
-
 document.addEventListener('DOMContentLoaded', () => {
-    domManager.performSearch();
+    window.digimonExplorer = new DigimonExplorer();
 });
