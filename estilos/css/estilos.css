@@ -1,4 +1,4 @@
-        * {
+* {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -6,13 +6,13 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff6200 0%, #ff9500 100%);
             min-height: 100vh;
             color: #333;
         }
 
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 215, 0, 0.95);
             backdrop-filter: blur(10px);
             padding: 1rem 0;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
@@ -38,7 +38,7 @@
         .logo {
             font-size: 2rem;
             font-weight: bold;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -55,7 +55,7 @@
             padding: 12px 50px 12px 20px;
             border: none;
             border-radius: 50px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 215, 0, 0.9);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             font-size: 16px;
             transition: all 0.3s ease;
@@ -63,7 +63,7 @@
 
         .search-input:focus {
             outline: none;
-            box-shadow: 0 4px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 25px rgba(255, 98, 0, 0.3);
             transform: translateY(-2px);
         }
 
@@ -71,7 +71,7 @@
             position: absolute;
             right: 5px;
             top: 5px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             border: none;
             border-radius: 50%;
             width: 40px;
@@ -86,7 +86,7 @@
         }
 
         .filters {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 215, 0, 0.9);
             backdrop-filter: blur(10px);
             padding: 1.5rem;
             margin: 2rem 0;
@@ -105,7 +105,7 @@
             padding: 10px 15px;
             border: none;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 215, 0, 0.8);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             font-size: 14px;
             cursor: pointer;
@@ -114,7 +114,7 @@
 
         .filter-select:focus {
             outline: none;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(255, 98, 0, 0.3);
         }
 
         .grid {
@@ -125,7 +125,7 @@
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 215, 0, 0.95);
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -143,7 +143,7 @@
             width: 100%;
             height: 250px;
             object-fit: cover;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #ff6200 0%, #ff9500 100%);
         }
 
         .card-content {
@@ -154,14 +154,14 @@
             font-size: 1.4rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .card-level {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -179,7 +179,7 @@
         }
 
         .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
+            border: 4px solid rgba(255, 215, 0, 0.3);
             border-radius: 50%;
             border-top: 4px solid white;
             width: 50px;
@@ -205,7 +205,7 @@
             padding: 12px 18px;
             border: none;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 215, 0, 0.9);
             color: #333;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -213,7 +213,7 @@
         }
 
         .page-btn:hover, .page-btn.active {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             color: white;
             transform: translateY(-2px);
         }
@@ -258,7 +258,7 @@
         }
 
         .close:hover {
-            color: #667eea;
+            color: #ff6200;
         }
 
         .modal-image {
@@ -273,7 +273,7 @@
         .stats {
             text-align: center;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 215, 0, 0.9);
             border-radius: 20px;
             margin: 2rem 0;
             backdrop-filter: blur(10px);
@@ -287,7 +287,7 @@
         }
 
         .stat-item {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #ff6200, #ff9500);
             color: white;
             padding: 1rem;
             border-radius: 15px;
@@ -329,7 +329,7 @@
             text-align: center;
             padding: 2rem;
             color: white;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 215, 0, 0.1);
             border-radius: 15px;
             margin: 2rem 0;
         }
