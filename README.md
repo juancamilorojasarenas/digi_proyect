@@ -1,102 +1,101 @@
-# 🌌 Proyecto 2 de Aula - Buscador de Star Wars
+# Proyecto de Aula - Buscador de Digimon
 
-> Un buscador interactivo de personajes, planetas, naves y más del universo de Star Wars hecho con HTML, CSS y JavaScript.
+> Un buscador interactivo de Digimon, sus niveles, atributos y más información del universo digital, hecho con HTML, CSS y JavaScript.
+
+---
 
 ## 🚀 Descripción
 
-Este proyecto consiste en el desarrollo de una aplicación web que consume la API pública de **Star Wars (SWAPI)**, permitiendo a los usuarios buscar y visualizar información sobre personajes, planetas, vehículos y otras categorías del universo galáctico.
+Este proyecto consiste en el desarrollo de una aplicación web que consume la API pública de **Digimon (Digimon API)**, permitiendo a los usuarios buscar y visualizar información sobre distintas criaturas digitales.
 
 El objetivo es aplicar conceptos fundamentales de desarrollo frontend como:
-- Consumo de APIs REST
-- Manipulación del DOM
-- Diseño responsivo
-- Experiencia de usuario intuitiva
+
+- Consumo de APIs REST  
+- Manipulación del DOM  
+- Diseño responsivo  
+- Experiencia de usuario centrada en la exploración  
 
 ---
 
 ## 📦 Características Principales
 
-✅ Búsqueda dinámica de personajes  
-✅ Visualización de detalles completos  
+✅ Búsqueda dinámica por nombre de Digimon  
+✅ Filtros por nivel, atributo y tipo  
+✅ Visualización de estadísticas completas  
 ✅ Diseño responsive adaptable a móviles y tablets  
-✅ Uso de SWAPI (The Star Wars API)  
-✅ UI limpia e intuitiva  
+✅ Uso de la **Digimon API**  
+✅ UI temática, intuitiva y estilizada al estilo "Digivice"  
 
 ---
 
 ## 🔧 Tecnologías Utilizadas
 
-- 💻 **HTML5**
-- 🎨 **CSS3 / SASS / Bootstrap (opcional)**
-- ⚡ **JavaScript (ES6+)**
-- 🌐 **Fetch API** para consumo de datos externos
+- 💻 **HTML5**  
+- 🎨 **CSS**  
+- ⚡ **JavaScript**  
+- vs code 
 
 ---
 
 ## 📚 Recursos Usados
 
-- [Personajes](https://es.wikipedia.org/wiki/Anexo:Personajes_de_Star_Wars) 
-- 🖼️ Assets visuales: iconos, fuentes, imágenes (si aplica)
+- [Digimon API oficial](https://digi-api.com)  
 
 ---
 
-## Maquetacion Del Proyecto
+## 🎨 Maquetación del Proyecto
 
-- Pàgina principal:
-![alt text](./estilos/icons/Logo.png)
+- Página principal:  
+  ![Logo Digimon](./estilos/icons/Logo.png)
 
+- [Haz clic aquí para ver la versión funcional](https://sites.google.com/view/digimon-buscador/inicio)  
+*(Este enlace es de ejemplo; personalízalo con el tuyo)*
 
-- [Haga click aquì para ver la maquetaciòn funcional](https://sites.google.com/view/star-wars-la-pelicula/inicio)
 ---
 
-
-
- ##  🛠️ Estructura del Proyecto Y 
+## 🛠️ Estructura del Proyecto
 
 ```
-proyecto-star-wars/
+proyecto-digimon/
 │
-├── index.html # Vista principal
-├── main.js # Lógica del cliente
-├── estilos.css # Estilos generales
-├── README.md # Este archivo
+├── index.html         # Página principal
+├── main.js            # Lógica principal de la app
+├── estilos.css        # Estilos visuales y responsivos
+├── assets/            # Imágenes, íconos y recursos
+│   └── img/
+└── README.md          # Este archivo
 ```
-
-
-## Funcionalidades
-
-
-
-### Menú principal (ejecutado desde `main.js`)
-1. Página de inicio con introducción temática
-
-2. Búsqueda de scp's por clases.
-
-3. Visualización detallada de cada elemento seleccionado
-
-4. Navegación fluida entre categorías
-
 
 ---
 
+## ⚙️ Funcionalidades
+
+### Menú principal (controlado desde `main.js`)
+
+1. Página de inicio con introducción al universo Digimon  
+2. Búsqueda por nombre y filtros por atributos (nivel, tipo)  
+3. Visualización detallada de cada Digimon: nombre, imagen, nivel, atributo  
+4. Navegación fluida y control de paginación  
+
+---
 
 ## ▶️ Cómo Ejecutar el Proyecto
 
 1. **Clona el repositorio:**
    ```bash
-   git clone: https://github.com/juancamilorojasarenas/Scp_proyect
-2. Asegúrate de usar un servidor local (como **Live Server** de VSCode).
-3. Abre `index.html`.
-4. La pàgina de inicio aparecera
- **Nota:** Abrir directamente con doble clic (`file://`) no funcionará correctamente con módulos (`import/export`).
+   git clone https://github.com/juancamilorojasarenas/digi_proyect
+   ```
+2. Usa un servidor local como **Live Server** de VSCode.  
+3. Abre `index.html` en tu navegador.  
+4. Explora el mundo digital.
 
+**Nota:** Abrir directamente con doble clic (`file://`) puede generar errores con rutas o módulos. Usa siempre un entorno de servidor local.
 
-##  Autor Y Licencia
+---
+
+## 🧑‍💻 Autor y Licencia
 
 Desarrollado por:
 
- Juan Camilo Rojas Arenas
+**Juan Camilo Rojas Arenas**  
 
----
-
----
