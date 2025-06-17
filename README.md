@@ -46,10 +46,8 @@ El objetivo es aplicar conceptos fundamentales de desarrollo frontend como:
 ## 🎨 Maquetación del Proyecto
 
 - Página principal:  
-  ![Logo Digimon](./estilos/icons/Logo.png)
+  ![Logo Digimon](./estilos/icons/digi.jpeg)
 
-- [Haz clic aquí para ver la versión funcional](https://sites.google.com/view/digimon-buscador/inicio)  
-*(Este enlace es de ejemplo; personalízalo con el tuyo)*
 
 ---
 
